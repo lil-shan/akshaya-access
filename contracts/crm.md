@@ -110,3 +110,13 @@ If a provider's keys are empty, its adapter runs in a clearly labelled SIMULATED
   clears it after send. Worker uses it once and nulls it like an OTP. Never logged, never in events/results/screenshots
   (take no screenshot while the password field is filled).
 - Other password-login portals (EPFO) remain out of scope.
+
+## v1.5 — UPI QR demo payments (user decision 2026-11-22: no Razorpay for now)
+- If Razorpay keys are empty and `UPI_DEMO_VPA` is set in `.integrations.env`, `payment_collect` uses provider
+  **`upi_qr_demo`**: builds `upi://pay?pa=<UPI_DEMO_VPA>&pn=<UPI_DEMO_NAME or "Akshaya Demo">&am=<amount>.00&cu=INR&tn=<"Akshaya demo case " + case_number>&tr=<payment id>`,
+  creates the `payments` row (`pending`, provider `upi_qr_demo`, reference = payment id), puts `result.upi_uri`, then polls
+  the `payments` row (≤15 min). When a CRM user sets it to `confirmed`, the worker continues to Eko (mock) bill-pay.
+- CRM: renders `upi_uri` as a QR + "Open in UPI app" link, labelled **"DEMO ONLY — pays the team's own UPI ID. Never use
+  with real citizens."**, plus a **"Mark received (demo)"** button (and "Mark failed") on the pending `upi_qr_demo` payment.
+- No VPA and no Razorpay keys → existing SIMULATED_RAZORPAY.
+- The amount is always exactly the fetched bill amount; there is no free-text amount anywhere.
