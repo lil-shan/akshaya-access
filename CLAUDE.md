@@ -2,6 +2,12 @@
 
 Product + scope: `PLAN.md` (start with "Ideathon prototype scope"). Background: `research/`, `Akshaya-Access.pptx`.
 
+## Update 2026-11-21: Devin retired, Claude subagents do the work
+Devin's quota is used up; the user asked to use Claude subagents (Sonnet, narrow briefs, low usage) and to **commit + push
+at regular intervals**. New folders and owners: `crm/` → CRM agent, `automation/` → automation agent. Contract: `contracts/crm.md`.
+Each agent writes only in its own folder; the orchestrator checks `git status` after each run before committing.
+The table below is the earlier Devin setup (kept for `backend/ voice/ frontend/`).
+
 ## Who owns what
 
 | Folder | Owner | Devin model (see `.devin/roles/models.env`) |
