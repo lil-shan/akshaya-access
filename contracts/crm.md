@@ -102,3 +102,11 @@ If a provider's keys are empty, its adapter runs in a clearly labelled SIMULATED
   sends it to the citizen as a `job_prompts` row `kind='confirm'` (prompt_text contains the link; CRM shows it as a link/QR),
   waits for the redirect/callback code (a tiny local callback endpoint in the worker), then fetches issued documents.
   Without keys: existing SIMULATED_DIGILOCKER.
+
+## v1.4 — Thuna password login allowed for the account owner (user decision 2026-11-22)
+- `thuna_lost_property` dry runs may log in with the citizen's own Thuna **password**, for the account owner only
+  (consent kind `portal_dry_run`, same warning modal, plus the line "Your Thuna password will be used once and erased").
+- New `job_prompts.kind = 'password'`: CRM renders `<input type="password" autocomplete="off">`, never stores it client-side,
+  clears it after send. Worker uses it once and nulls it like an OTP. Never logged, never in events/results/screenshots
+  (take no screenshot while the password field is filled).
+- Other password-login portals (EPFO) remain out of scope.
