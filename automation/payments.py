@@ -4,7 +4,7 @@ Eko: docs developers.eko.in (auth page): headers developer_key, secret-key = bas
 secret-key-timestamp (13-digit ms). UAT base https://staging.eko.in/ekoapi/v3 . Paths/fixtures taken from @ekoindia/eps-mock-server."""
 import base64, hashlib, hmac, json, os, socket, subprocess, time, uuid, datetime as dt
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote
 import requests
 
 HERE = Path(__file__).parent
@@ -105,3 +105,16 @@ def stop_eko_mock(p):
     if p:
         try: os.killpg(p.pid, signal.SIGTERM)
         except ProcessLookupError: pass
+
+
+# ---------------- UPI QR demo (contract v1.5) ----------------
+def select_provider():
+    """Razorpay keys -> 'razorpay'; else UPI_DEMO_VPA -> 'upi_qr_demo'; else 'simulated'."""
+    if env("RAZORPAY_KEY_ID") and env("RAZORPAY_KEY_SECRET"): return "razorpay"
+    return "upi_qr_demo" if env("UPI_DEMO_VPA") else "simulated"
+
+def upi_uri(vpa, name, amount_inr, case_number, payment_id):
+    """Amount is always whole rupees from the fetched bill, rendered exactly as '<n>.00'. Params percent-encoded (spaces as %20)."""
+    amt = int(amount_inr)
+    q = [("pa", vpa), ("pn", name or "Akshaya Demo"), ("am", f"{amt}.00"), ("cu", "INR"), ("tn", f"Akshaya demo case {case_number}"), ("tr", payment_id)]
+    return "upi://pay?" + "&".join(f"{k}={quote(str(v), safe='@.-_')}" for k, v in q)

@@ -59,7 +59,7 @@ if __name__ == "__main__":
     # 5. payments: KSEB bill fetch via Eko mock server, Razorpay SIMULATED paid, Eko mock pay
     import os, subprocess, threading, time, payments
     from e2e_mock import ROOT
-    os.environ.update(RAZORPAY_KEY_ID="", RAZORPAY_KEY_SECRET="", EKO_DEVELOPER_KEY="", EKO_ACCESS_KEY="", PAY_POLL_SECONDS="1", EKO_MOCK_URL=payments.EKO_MOCK)
+    os.environ.update(RAZORPAY_KEY_ID="", RAZORPAY_KEY_SECRET="", EKO_DEVELOPER_KEY="", EKO_ACCESS_KEY="", PAY_POLL_SECONDS="1", UPI_DEMO_VPA="", EKO_MOCK_URL=payments.EKO_MOCK)
     E.wait_for_catalogue(["kseb_bill_payment"]); mock = payments.start_eko_mock(); print("INFO Eko mock server on", payments.EKO_MOCK)
     try:
         KSEB = {"consumer_number": "1234567890123", "payer_mobile": "9000000000", "confirm_amount": "yes"}
@@ -99,6 +99,18 @@ if __name__ == "__main__":
         pays = db.table("payments").select("*").eq("case_id", case["id"]).execute().data
         check(len(pays) == 1 and pays[0]["status"] == "confirmed" and pays[0]["provider"] == "razorpay_test" and pays[0]["amount_inr"] == amt, "payments row confirmed")
         check(jj["result"]["eko_reference"] == jj["result"]["eko"]["reference"] and jj["result"]["payment_provider"] == "SIMULATED_RAZORPAY", f"Eko mock pay reference {jj['result']['eko']['reference']}, link {jj['result']['short_url']}")
+        # v1.5 UPI QR demo: test marks the payments row confirmed (stands in for the CRM "Mark received" button)
+        os.environ["UPI_DEMO_VPA"] = "test@upi"; db.table("payments").delete().eq("case_id", case["id"]).execute()
+        def confirm_row():
+            for _ in range(60):
+                r = db.table("payments").select("id").eq("case_id", case["id"]).eq("provider", "upi_qr_demo").execute().data
+                if r: db.table("payments").update({"status": "confirmed"}).eq("id", r[0]["id"]).execute(); return
+                time.sleep(1)
+        threading.Thread(target=confirm_row, daemon=True).start()
+        jj = collect(f"I agree to pay Rs {amt} for my KSEB bill (demo)")
+        check(jj["status"] == "succeeded" and jj["result"]["upi_uri"].startswith("upi://pay?pa=test@upi") and f"am={amt}.00" in jj["result"]["upi_uri"], f"upi_qr_demo job succeeded (error={jj['error']})")
+        check(jj["result"]["eko_reference"], f"upi_qr_demo -> Eko mock reference {jj['result']['eko_reference']}")
+        os.environ["UPI_DEMO_VPA"] = ""
         # missing _bill
         case2, j2 = E.run("kseb_bill_payment", KSEB, "payment_collect", "mock", False)
         check(j2["status"] == "failed" and j2["error"] == "missing_bill", f"payment_collect without _bill fails (error={j2['error']})")

@@ -60,8 +60,9 @@ def test_consent_amount():
 class PDb(FakeDb):
     def __init__(self, consents): super().__init__(); self.consents, self.pay = consents, {}
     def consent_texts(self, cid, kind): return self.consents
-    def add_payment(self, row): self.pay["p"] = dict(row); return "p"
+    def add_payment(self, row): pid = row.get("id", "p"); self.pay[pid] = dict(row); return pid
     def set_payment(self, pid, **kw): self.pay[pid].update(kw)
+    def payment_status(self, pid): return self.pay[pid]["status"]
 
 def case(bill): return {"id": "c1", "case_number": "123456", "data": {"consumer_number": "1" * 13, "payer_mobile": "9" * 10, **({"_bill": bill} if bill else {})}}
 BILL = {"amount_inr": 2870, "customer_name": "A", "provider": "EKO_MOCK_SERVER"}
@@ -87,3 +88,41 @@ def test_payment_flow_simulated(monkeypatch, tmp_path):
     threading.Thread(target=pay_later).start()
     res = worker.run_payment_collect(db, JOB, case(BILL), poll=.05, timeout=10)
     assert db.pay["p"]["status"] == "confirmed" and res["eko"]["reference"] == "T9" and res["eko_reference"] == "T9" and res["short_url"].startswith("https://rzp.io/simulated/")
+
+
+def test_provider_selection(monkeypatch):
+    for k in ("RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "UPI_DEMO_VPA"): monkeypatch.setenv(k, "")
+    assert payments.select_provider() == "simulated"
+    monkeypatch.setenv("UPI_DEMO_VPA", "a@upi"); assert payments.select_provider() == "upi_qr_demo"
+    monkeypatch.setenv("RAZORPAY_KEY_ID", "k"); assert payments.select_provider() == "upi_qr_demo"
+    monkeypatch.setenv("RAZORPAY_KEY_SECRET", "s"); assert payments.select_provider() == "razorpay"
+
+def test_upi_uri_format_encoding_amount():
+    from urllib.parse import urlparse, parse_qs
+    u = payments.upi_uri("team name@okbank", "Akshaya & Co", 2870, "123456", "id-1")
+    assert u.startswith("upi://pay?pa=team%20name@okbank&pn=Akshaya%20%26%20Co&am=2870.00&cu=INR&tn=Akshaya%20demo%20case%20123456&tr=id-1")
+    q = parse_qs(urlparse(u).query); assert q["am"] == ["2870.00"] and q["pn"] == ["Akshaya & Co"] and q["tn"] == ["Akshaya demo case 123456"]
+    assert parse_qs(urlparse(payments.upi_uri("a@upi", "", 5, "1", "x")).query)["pn"] == ["Akshaya Demo"]
+
+def _upi_env(monkeypatch):
+    for k in ("RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "EKO_DEVELOPER_KEY", "EKO_ACCESS_KEY"): monkeypatch.setenv(k, "")
+    monkeypatch.setenv("UPI_DEMO_VPA", "test@upi"); monkeypatch.setattr(payments, "start_eko_mock", lambda url=None: None)
+    monkeypatch.setattr(payments.Eko, "pay_bill", lambda self, *a: {"reference": "T7", "provider": "EKO_MOCK_SERVER", "status": "SUCCESS"})
+
+def _mark(db, status):
+    def f():
+        for _ in range(100):
+            if db.pay: db.pay[next(iter(db.pay))]["status"] = status; return
+            time.sleep(.05)
+    threading.Thread(target=f).start()
+
+def test_upi_qr_demo_confirmed(monkeypatch):
+    _upi_env(monkeypatch); db = PDb(["pay Rs 2870"]); _mark(db, "confirmed")
+    res = worker.run_payment_collect(db, JOB, case(BILL), poll=.05, timeout=10)
+    row = next(iter(db.pay.values()))
+    assert row["provider"] == "upi_qr_demo" and row["reference"] == row["id"] and row["status"] == "confirmed" and f"tr={row['id']}" in res["upi_uri"]
+    assert "am=2870.00" in res["upi_uri"] and res["eko_reference"] == "T7"
+
+def test_upi_qr_demo_failed(monkeypatch):
+    _upi_env(monkeypatch); db = PDb(["pay Rs 2870"]); _mark(db, "failed")
+    with pytest.raises(worker.JobError, match="^payment_failed$"): worker.run_payment_collect(db, JOB, case(BILL), poll=.05, timeout=10)

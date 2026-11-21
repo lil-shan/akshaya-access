@@ -1,6 +1,6 @@
 """Automation worker: polls automation_jobs, runs pdf / mock_portal jobs. See contracts/crm.md "Job protocol".
 Never submits on a portal, never solves captchas, never logs OTP/captcha values."""
-import os, re, secrets, sys, time, socket, subprocess, urllib.request, datetime as dt
+import os, re, secrets, uuid, sys, time, socket, subprocess, urllib.request, datetime as dt
 from pathlib import Path
 HERE = Path(__file__).parent
 BUCKET = "case-files"
@@ -44,6 +44,7 @@ class Db:
     def merge_case_data(self, case_id, extra):
         d = self.get_case(case_id).get("data") or {}; d.update(extra); self.c.table("cases").update({"data": d, "updated_at": now()}).eq("id", case_id).execute()
     def add_payment(self, row): return self.c.table("payments").insert(row).execute().data[0]["id"]
+    def payment_status(self, pid): return self.c.table("payments").select("status").eq("id", pid).single().execute().data["status"]
     def set_payment(self, pid, **kw): self.c.table("payments").update(kw).eq("id", pid).execute()
     def get_citizen(self, cid): return self.c.table("citizens").select("*").eq("id", cid).single().execute().data
     def add_document(self, case_id, kind, path, source):
@@ -134,27 +135,38 @@ def run_payment_collect(db, job, case, poll=None, timeout=900):
     if not texts: raise JobError("missing_consent:payment")
     amt = bill["amount_inr"]
     if not consent_amount_ok(texts, amt): raise JobError("amount_mismatch")
-    poll = poll or float(os.environ.get("PAY_POLL_SECONDS") or 5); rz = payments.Razorpay()
-    link = rz.create_link(amt, f"case-{case.get('case_number')}", f"KSEB bill payment Rs {amt} (test mode)")
-    pid = db.add_payment({"case_id": case["id"], "provider": "razorpay_test", "amount_inr": amt, "status": "pending", "reference": link["id"]})
-    db.set_job(job["id"], result={"short_url": link["short_url"], "payment_provider": rz.label, "amount_inr": amt})
-    db.event(case["id"], "payment_link", f"Payment link created ({rz.label}) for Rs {amt}; citizen pays in their own UPI app", {"short_url": link["short_url"]})
-    end = time.time() + timeout; st = None
+    poll = poll or float(os.environ.get("PAY_POLL_SECONDS") or 5); prov = payments.select_provider()
+    if prov == "upi_qr_demo":
+        pid = str(uuid.uuid4()); label = "UPI_QR_DEMO"
+        uri = payments.upi_uri(payments.env("UPI_DEMO_VPA"), payments.env("UPI_DEMO_NAME"), amt, case.get("case_number"), pid)
+        db.add_payment({"id": pid, "case_id": case["id"], "provider": "upi_qr_demo", "amount_inr": amt, "status": "pending", "reference": pid})
+        db.set_job(job["id"], result={"upi_uri": uri, "payment_provider": label, "amount_inr": amt})
+        db.event(case["id"], "payment_link", f"UPI QR demo payment created for Rs {amt} (DEMO ONLY); waiting for a CRM user to mark it received")
+        url, status = uri, lambda: db.payment_status(pid)
+    else:
+        rz = payments.Razorpay(); label = rz.label
+        link = rz.create_link(amt, f"case-{case.get('case_number')}", f"KSEB bill payment Rs {amt} (test mode)")
+        pid = db.add_payment({"case_id": case["id"], "provider": "razorpay_test", "amount_inr": amt, "status": "pending", "reference": link["id"]})
+        db.set_job(job["id"], result={"short_url": link["short_url"], "payment_provider": label, "amount_inr": amt})
+        db.event(case["id"], "payment_link", f"Payment link created ({label}) for Rs {amt}; citizen pays in their own UPI app", {"short_url": link["short_url"]})
+        url, status = link["short_url"], lambda: rz.status(link["id"])
+    end = time.time() + timeout
     while time.time() < end:
-        st = rz.status(link["id"])
-        if st == "paid": break
-        if st in ("expired", "cancelled"): db.set_payment(pid, status="failed"); raise JobError(f"payment_{st}")
+        st = status()
+        if st in ("paid", "confirmed"): break
+        if st in ("expired", "cancelled", "failed"):
+            db.set_payment(pid, status="failed"); raise JobError("payment_failed" if prov == "upi_qr_demo" else f"payment_{st}")
         time.sleep(poll)
     else: db.set_payment(pid, status="failed"); raise JobError("payment_timeout")
-    db.set_payment(pid, status="confirmed"); db.event(case["id"], "payment_confirmed", f"Payment confirmed ({rz.label})")
+    db.set_payment(pid, status="confirmed"); db.event(case["id"], "payment_confirmed", f"Payment confirmed ({label})")
     eko = payments.Eko(); mock = None if eko.live else payments.start_eko_mock(eko.base)
     try: pay = eko.pay_bill(str(d["consumer_number"]), str(d["payer_mobile"]), amt, bill)
     except Exception as e: db.event(case["id"], "bill_pay_failed", "Payment taken but bill-pay failed; needs manual refund/retry"); raise JobError(f"bill_pay_failed_after_payment:{e}"[:200])
     finally:
         payments.stop_eko_mock(mock)
     db.event(case["id"], "bill_paid", f"Bill paid via {pay['provider']} (sandbox), ref {pay['reference']}")
-    return {"short_url": link["short_url"], "payment_provider": rz.label, "amount_inr": amt, "payment_status": "confirmed", "eko": pay, "eko_reference": pay["reference"], "bill_provider": pay["provider"],
-            "summary": f"Paid Rs {amt}: {rz.label} confirmed, bill paid via {pay['provider']} ref {pay['reference']} (sandbox/test)."}
+    return {("upi_uri" if prov == "upi_qr_demo" else "short_url"): url, "payment_provider": label, "amount_inr": amt, "payment_status": "confirmed", "eko": pay, "eko_reference": pay["reference"], "bill_provider": pay["provider"],
+            "summary": f"Paid Rs {amt}: {label} confirmed, bill paid via {pay['provider']} ref {pay['reference']} (sandbox/test)."}
 
 def run_pdf(db, job, case, svc):
     import pdf_filler
