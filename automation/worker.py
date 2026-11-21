@@ -64,7 +64,8 @@ def ask(db, job, kinds, timeout=PROMPT_TTL, poll=1.0, extra=None):
             db.set_job(job["id"], status="running"); db.set_case(job["case_id"], "running")
             db.event(job["case_id"], "input_received", "Citizen consent callback received (value not logged)"); return "callback", v
         for pid, (k, _, _) in zip(ids, kinds):
-            p = db.get_prompt(pid)
+            try: p = db.get_prompt(pid)
+            except Exception as e: print(f"prompt poll error (retrying): {type(e).__name__}", flush=True); continue
             if p["status"] == "answered" and p.get("answer"):
                 ans = p["answer"]
                 db.set_prompt(pid, answer=None, status="used")
@@ -271,15 +272,22 @@ def process(db, job):
     db.set_job(job["id"], status="succeeded", result=res, finished_at=now()); db.set_case(case["id"], prior if job["kind"] in ("digilocker_fetch", "bbps_fetch") else "done")
     db.event(case["id"], "job_succeeded", res["summary"])
 
-def loop(db, once=False):
+def loop(db, once=False, sleep=time.sleep):
+    backoff = 0
     while True:
-        for job in db.queued_jobs():
-            try: svc = db.get_service(db.get_case(job["case_id"])["service_id"])
-            except Exception: continue
-            if svc["submission"] == "api" and job["kind"] not in ("digilocker_fetch", "bbps_fetch", "payment_collect"): continue
-            if db.claim(job["id"]): process(db, job)
+        try:
+            for job in db.queued_jobs():
+                try: svc = db.get_service(db.get_case(job["case_id"])["service_id"])
+                except Exception: continue
+                if svc["submission"] == "api" and job["kind"] not in ("digilocker_fetch", "bbps_fetch", "payment_collect"): continue
+                if db.claim(job["id"]): process(db, job)
+            backoff = 0
+        except Exception as e:  # transient DB/network error: log one line (no secrets), back off, keep running
+            backoff = min(30, backoff * 2 or 2); print(f"worker loop error ({type(e).__name__}); retry in {backoff}s", flush=True)
+            if once: raise
+            sleep(backoff); continue
         if once: return
-        time.sleep(2)
+        sleep(2)
 
 if __name__ == "__main__":
     load_env(); sys.path.insert(0, str(HERE)); print("worker started", WORKER, flush=True); loop(Db(), once="--once" in sys.argv)

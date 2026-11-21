@@ -35,6 +35,14 @@ def answerer(job_id, stop):
             if ans: db.table("job_prompts").update({"answer": ans, "status": "answered", "answered_at": worker.now()}).eq("id", p["id"]).execute()
         time.sleep(1)
 
+def get_job(job_id):
+    """Poll read tolerant of a transient Supabase/network disconnect (retries, then raises)."""
+    for i in range(4):
+        try: return db.table("automation_jobs").select("*").eq("id", job_id).single().execute().data
+        except Exception:
+            if i == 3: raise
+            time.sleep(2)
+
 def run(service_id, data, kind, mode, with_answerer):
     case, job = make_job(service_id, data, kind, mode); stop = threading.Event()
     if with_answerer:
@@ -42,11 +50,21 @@ def run(service_id, data, kind, mode, with_answerer):
     w = subprocess.Popen([sys.executable, str(ROOT / "worker.py")], cwd=ROOT)
     try:
         for _ in range(120):
-            j = db.table("automation_jobs").select("*").eq("id", job["id"]).single().execute().data
+            j = get_job(job["id"])
             if j["status"] in ("succeeded", "failed", "cancelled"): break
             time.sleep(1)
-    finally: stop.set(); w.terminate()
+    finally: stop.set(); stop_worker(w)
+    check(j["status"] in ("succeeded", "failed", "cancelled"), f"{kind} job finished within 120s (stuck in status={j['status']}; a stray worker.py may be stealing jobs)")
     return case, j
+
+def stop_worker(w):
+    w.terminate()
+    try: w.wait(10)
+    except subprocess.TimeoutExpired: w.kill(); w.wait(5)
+
+def stray_workers():
+    out = subprocess.run(["pgrep", "-af", "^[^ ]*python[^ ]* [^ ]*worker\\.py"], capture_output=True, text=True).stdout
+    return [l for l in out.splitlines() if "pgrep" not in l]
 
 def check(cond, msg):
     print(("PASS " if cond else "FAIL ") + msg)

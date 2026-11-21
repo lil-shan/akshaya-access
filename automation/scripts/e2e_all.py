@@ -52,6 +52,7 @@ NEW_MOCK = ["edistrict_nativity_certificate", "edistrict_residence_certificate",
 NEW_PDF = ["pmfby_crop_loss", "pan_form49a_prep", "passport_prep", "epf_withdrawal_prep"]
 
 if __name__ == "__main__":
+    import signal; signal.signal(signal.SIGALRM, lambda *a: (print("FAIL e2e_all watchdog: exceeded 520s, a step is hung", flush=True), os._exit(1))); signal.alarm(520)
     os.environ["MOCK_URL"] = "http://127.0.0.1:8791"   # own mock-portal port; never the user's
     upsert_missing_services(NEW_MOCK + NEW_PDF + ["voter_form8", "kwa_water_bill"])
     E.wait_for_catalogue(["edistrict_income_certificate", "pmjjby_claim", "pmsby_claim"])
@@ -86,6 +87,7 @@ if __name__ == "__main__":
     check(j["status"] == "failed" and j["error"] == "missing_consent:digilocker", f"digilocker without consent fails (error={j['error']})")
     # 5. payments: KSEB bill fetch via Eko mock server, Razorpay SIMULATED paid, Eko mock pay
     import os, subprocess, threading, time, payments
+    strays = E.stray_workers(); check(not strays, f"no stray worker.py running (found: {strays})")
     from e2e_mock import ROOT
     os.environ.update(RAZORPAY_KEY_ID="", RAZORPAY_KEY_SECRET="", EKO_DEVELOPER_KEY="", EKO_ACCESS_KEY="", PAY_POLL_SECONDS="1", UPI_DEMO_VPA="", EKO_MOCK_URL=payments.EKO_MOCK)
     E.wait_for_catalogue(["kseb_bill_payment"]); mock = payments.start_eko_mock(); print("INFO Eko mock server on", payments.EKO_MOCK)
@@ -109,10 +111,11 @@ if __name__ == "__main__":
             w = subprocess.Popen([sys.executable, str(ROOT / "worker.py")], cwd=ROOT, env=dict(os.environ))
             try:
                 for _ in range(90):
-                    jj = db.table("automation_jobs").select("*").eq("id", jb["id"]).single().execute().data
+                    jj = E.get_job(jb["id"])
                     if jj["status"] in ("succeeded", "failed"): return jj
                     time.sleep(1)
-            finally: w.terminate()
+            finally: E.stop_worker(w)
+            check(False, "payment_collect job did not finish within 90s (stray worker.py or unpaid link?)")
         # missing consent
         jj = collect(None); check(jj["status"] == "failed" and jj["error"] == "missing_consent:payment", f"payment_collect without consent fails (error={jj['error']})")
         # amount mismatch

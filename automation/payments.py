@@ -5,7 +5,8 @@ secret-key-timestamp (13-digit ms). UAT base https://staging.eko.in/ekoapi/v3 . 
 import base64, hashlib, hmac, json, os, socket, subprocess, time, uuid, datetime as dt
 from pathlib import Path
 from urllib.parse import urlencode, quote
-import requests
+try: import requests
+except ImportError: requests = None  # sim/test helpers (sim_mark_paid) must import without it; live paths need it
 
 HERE = Path(__file__).parent
 EKO_UAT = "https://staging.eko.in/ekoapi/v3"
