@@ -36,7 +36,7 @@ def auto_answer(db, stop):
         for pid, p in list(db.prompts.items()):
             if pid not in seen and p["status"] == "open":
                 seen.add(pid)
-                v = "Dummy@1234" if "assword" in p["prompt_text"] else ANS[p["kind"]]
+                v = "Dummy@1234" if p["kind"] == "password" else ANS[p["kind"]]
                 db.prompts[pid].update(answer=v, status="answered")
         time.sleep(.05)
 
@@ -115,7 +115,7 @@ def test_replay_thuna_denylist_stops_at_preview_and_submit(server):
     res, db = replay(server, "thuna_lost_property", "/thuna", {"lost_date": "2026-11-01", "lost_description": "bag", "item_name": "Licence"})
     assert res["stopped_reason"] == "guard_refused_next"           # 'Preview & Submit' refused by the denylist
     assert "/SUBMIT" not in H.hits and "/bye" in H.hits
-    kinds = [p["kind"] for p in db.prompts.values()]; assert kinds.count("field") == 2 and "captcha_audio" not in kinds  # mobile + password; image-only captcha
+    kinds = [p["kind"] for p in db.prompts.values()]; assert kinds.count("field") == 1 and kinds.count("password") == 1 and "captcha_audio" not in kinds  # mobile=field, password=kind 'password'; image-only captcha
     assert "lost_form-filled" in db.up and "lost_form-stop" in db.up
 
 def test_unknown_page_aborts_with_screenshot(server):
@@ -136,6 +136,24 @@ def test_aadhaar_page_stops(server):
         r = dry_run.run_dry(pg, db, {"id": "j", "case_id": "c"}, {"id": "c", "data": {}}, "voter_form6", lambda p, n: db.up.setdefault(n, 1), worker.ask, base_url=server + "/aad"); b.close()
     assert r["stopped_reason"] == "aadhaar_citizen_enters_on_portal"
 
+def test_no_capture_while_password_field_filled(server):
+    """v1.4: every screenshot / structure dump happens with all password inputs empty; password nulled after use."""
+    from playwright.sync_api import sync_playwright
+    H.hits.clear(); db = Db(); stop = threading.Event(); threading.Thread(target=auto_answer, args=(db, stop), daemon=True).start(); seen = []
+    def probe(p): seen.append(p.evaluate("()=>[...document.querySelectorAll('input[type=password]')].map(e=>e.value).join('')"))
+    orig_up = db.upload
+    def up(path, data, ct):
+        if path.endswith(".json"): probe(pg)
+        orig_up(path, data, ct)
+    db.upload = up
+    with sync_playwright() as pw:
+        b = pw.chromium.launch(headless=True); pg = b.new_page()
+        try: dry_run.run_dry(pg, db, {"id": "j", "case_id": "c"}, {"id": "c", "data": {"lost_date": "2026-11-01", "lost_description": "bag", "item_name": "Licence"}},
+                             "thuna_lost_property", lambda p, n: probe(p), worker.ask, base_url=server + "/thuna")
+        finally: stop.set(); b.close()
+    assert seen and all(v == "" for v in seen)
+    assert "Dummy@1234" not in json.dumps(db.events) + json.dumps(db.jobs) and all(p["answer"] is None for p in db.prompts.values())
+
 def test_page_structure_never_captures_values_or_paragraphs(server):
     STUB["/sens"] = page('<h1>Head</h1><p>SECRETPARAGRAPH</p><label for="m">Mobile</label><input id="m" name="mob" placeholder="Enter mobile" required>'
                          '<select name="g"><option>Male</option></select><textarea name="t"></textarea><button id="b">Next</button><a href="/x?tok=SECRETQ">Link</a>')
@@ -152,3 +170,12 @@ def test_page_structure_never_captures_values_or_paragraphs(server):
 def test_every_select_has_options_and_no_pattern(svc):
     for f in dry_run.load_fields(svc):
         if f["type"] == "select": assert f.get("options") and all(isinstance(o, str) and o for o in f["options"]) and not f.get("pattern"), f["key"]
+
+def test_scrub_passwords_clears_filled_field(server):
+    from playwright.sync_api import sync_playwright
+    STUB["/pw"] = page('<input type="password" name="password"><input name="u">')
+    with sync_playwright() as pw:
+        b = pw.chromium.launch(headless=True); pg = b.new_page(); pg.goto(server + "/pw")
+        pg.fill("[name=password]", "Dummy@1234"); pg.fill("[name=u]", "keepme"); dry_run.scrub_passwords(pg)
+        vals = (pg.input_value("[name=password]"), pg.input_value("[name=u]")); b.close()
+    assert vals == ("", "keepme")

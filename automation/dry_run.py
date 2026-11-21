@@ -71,12 +71,20 @@ def page_structure(page):
     d = page.evaluate(STRUCT_JS); d["path"] = page.url.split("?")[0].split("#")[0].split("//", 1)[-1].split("/", 1)[-1] and "/" + page.url.split("?")[0].split("#")[0].split("//", 1)[-1].split("/", 1)[-1]
     return d
 
+def scrub_passwords(page):
+    """Clear every password input (v1.4): called before ANY screenshot / structure capture so a typed password is never captured."""
+    try: page.evaluate("()=>document.querySelectorAll('input[type=password]').forEach(e=>{e.value=''})")
+    except Exception: pass
+
 def run_dry(page, db, job, case, service, shot, ask, base_url=None, log=None, structs=None):
     """Drive `page` through the portal spec. Returns result dict. `ask` = worker.ask. Raises AbortRun on unknown page."""
     spec = PORTALS[service]; cid = case["id"]; data = case.get("data") or {}; keys = [f["key"] for f in load_fields(service)]
     ev = lambda m, d=None: db.event(cid, "step", m, d)
+    _shot = shot
+    def shot(pg_, name): scrub_passwords(pg_); return _shot(pg_, name)
     structs = structs if structs is not None else []
     def dump():
+        scrub_passwords(page)
         path = f"{cid}/{job['id']}/page-{len(structs) + 1}.json"
         try: db.upload(path, json.dumps(page_structure(page), ensure_ascii=False).encode(), "application/json"); structs.append(path)
         except Exception: pass
@@ -101,7 +109,7 @@ def run_dry(page, db, job, case, service, shot, ask, base_url=None, log=None, st
                 if kind == "mobile":
                     _, v = ask(db, job, [("field", "Mobile number registered for this login", None)]); page.fill(arg, v); v = None
                 elif kind == "password":
-                    _, v = ask(db, job, [("field", "Password for this portal login (used once, not stored)", None)]); page.fill(arg, v); v = None
+                    _, v = ask(db, job, [("password", "Your Thuna password (used once and erased)", None)]); page.fill(arg, v); v = None
                 elif kind == "otp":
                     _, v = ask(db, job, [("otp", "The portal sent an OTP by SMS to your phone. Please read it out.", None)]); page.fill(arg, v); v = None
                 elif kind == "captcha":
