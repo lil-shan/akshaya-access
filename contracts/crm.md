@@ -120,3 +120,37 @@ If a provider's keys are empty, its adapter runs in a clearly labelled SIMULATED
   with real citizens."**, plus a **"Mark received (demo)"** button (and "Mark failed") on the pending `upi_qr_demo` payment.
 - No VPA and no Razorpay keys → existing SIMULATED_RAZORPAY.
 - The amount is always exactly the fetched bill amount; there is no free-text amount anywhere.
+
+## v1.6 — more services + call agent (2026-11-22)
+### Service definition files
+Each service lives in `automation/portals/<service_id>/service.json` (automation agent writes it):
+`{"id","name","name_ml","category","tier","submission","fields":[...],"documents":[...],"fee":{...},"active":true,"notes"}`
+(`fields` in the catalogue format; selects must have `options`). `category` ∈ `certificates`, `insurance`, `bills`,
+`elections`, `identity`, `police`, `agriculture`, `employment`. The orchestrator seeds them with `scripts/seed_services.py`
+(upsert; preserves `active` of existing rows). Existing services get a `service.json` too (same ids).
+
+### New services (all dummy-data testable; nothing submitted)
+| id | tier | submission | automation |
+|---|---|---|---|
+| edistrict_nativity_certificate / _residence_ / _community_ / _relationship_ | 2 | mock_portal | the e-District mock, parameterised by certificate type |
+| ksmart_birth_certificate | 2 | mock_portal | a small K-SMART-style mock (mobile OTP + audio captcha) |
+| ration_card_add_member | 2 | mock_portal | a small civil-supplies-style mock |
+| voter_form8 | 2 | portal_dry_run | ECI portal, same login as Form 6 (shift / correction) |
+| kwa_water_bill | 3 | api | Eko BBPS (mock server) like KSEB, water operator |
+| pmfby_crop_loss | 1 | pdf | crop-loss intimation form + 72-hour deadline note |
+| pan_form49a_prep | 1 | pdf | filled Form 49A-style sheet + checklist (citizen applies on Protean/IT portal) |
+| passport_prep | 1 | pdf | application details sheet + documents + appointment checklist |
+| epf_withdrawal_prep | 1 | pdf | Form 31/19-style details sheet + checklist (citizen files on EPFO portal) |
+
+### Call agent (`callagent/`, Sarvam)
+- Inbound only. Uses the catalogue: picks a service by voice (category → service), asks each field's `ask_ml`
+  (prefill from citizen record when known), reads values back digit-by-digit for numbers, records consent by voice
+  (`consents.channel='phone'`), creates/updates the case (`channel='phone'`), queues the job, then relays `job_prompts`:
+  `otp`/`field`/`password` → asks the caller, answers the prompt, **never writes the spoken value to transcripts/events**
+  (transcript shows `[OTP given]`, `[password given]`); `captcha_audio` → plays the portal's audio to the caller, caller
+  repeats the characters; `captcha_image` → tells the caller it needs WhatsApp and hands off (not supported by voice yet);
+  `confirm` → reads the prompt and asks yes/no.
+- Reports the job result by voice (stopped before submit / PDF ready / payment status).
+- Speech: Sarvam Saaras (STT, codemix) + Bulbul (TTS); key from `voice/.env` (last `SARVAM_API_KEY=sk_…` line). Text
+  simulator mode (no credits) for most tests; a small audio round-trip test budget (≤ 60 Sarvam calls total).
+- Talks to Supabase with the service-role key (server-side process), like the worker.
