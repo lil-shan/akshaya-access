@@ -69,3 +69,19 @@ Enable Supabase Realtime on `cases`, `case_events`, `automation_jobs`, `job_prom
   each upload gets a `documents` row (`source='upload'`). Max 10 MB; pdf/jpg/png only.
 - **Captcha audio:** the mock portal speaks its captcha digits using Sarvam Bulbul TTS (cached wav files); the beep fallback
   remains when no key is available.
+
+## v1.2 additions — real-portal dry runs (2026-11-21)
+- New services (CRM seeds them; tier 2, `submission = 'portal_dry_run'`):
+  - `voter_form6` — ECI new voter registration (voters.eci.gov.in), mobile-OTP login.
+  - `thuna_lost_property` — Kerala Police Thuna lost-property / lost-document report, mobile-OTP login.
+  Field definitions: the automation agent writes `automation/portals/<service>/fields.json` (catalogue `fields` format);
+  the CRM agent seeds `services` from those files.
+- **Dry-run only.** `automation_jobs.mode = 'dry_run'`. The worker never clicks a final submit / confirm / e-sign / pay
+  control; it stops at the last preview page, screenshots it, and logs out. A code-level click allowlist + tests enforce it.
+- **Runtime-only identifiers:** the login mobile number is requested with a `job_prompts` row `kind='field'`
+  (prompt_text: "Mobile number registered for this login"), used once, then nulled like an OTP. Never stored in
+  `cases.data`, `citizens`, events or results.
+- **Who may start a live dry run:** a CRM user, for a case whose citizen is the person at the keyboard/phone (a team member
+  using their own number). The CRM shows a confirmation: "This opens the REAL portal and sends a REAL OTP to your phone.
+  Nothing will be submitted." Consent row `kind='portal_dry_run'` required.
+- Portals whose login needs a password (EPFO) are out of scope for automated dry runs.
