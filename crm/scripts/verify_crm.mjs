@@ -48,6 +48,9 @@ try {
   const cp = await admin.from("job_prompts").insert({ job_id: dj.data?.id, kind: "confirm", prompt_text: "Approve DigiLocker access: https://example.com/consent?x=1", status: "open", expires_at: new Date(Date.now() + 120000).toISOString() }).select("id").single();
   const ca = await sb.from("job_prompts").update({ answer: "yes", status: "answered", answered_at: new Date().toISOString() }).eq("id", cp.data?.id).eq("status", "open").select("status").single();
   ok("answer confirm prompt", !cp.error && ca.data?.status === "answered", cp.error?.message ?? ca.error?.message);
+  const pp = await admin.from("job_prompts").insert({ job_id: dj.data?.id, kind: "password", prompt_text: "Thuna password", status: "open", expires_at: new Date(Date.now() + 120000).toISOString() }).select("id").single();
+  const pa = await sb.from("job_prompts").update({ answer: "verify-pw", status: "answered", answered_at: new Date().toISOString() }).eq("id", pp.data?.id).eq("status", "open").select("status").single();
+  ok("answer password prompt", !pp.error && pa.data?.status === "answered", pp.error?.message ?? pa.error?.message);
   shot = `${caseId}/${dj.data?.id}/verify.png`;
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
   const sup = await admin.storage.from("case-files").upload(shot, png, { contentType: "image/png" });

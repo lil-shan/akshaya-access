@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
 import { validate, type Field } from "../form";
 import DynamicForm from "../DynamicForm";
@@ -46,6 +46,13 @@ async function signed(path: string | null) {
 
 function PromptPanel({ p, onDone }: { p: Prompt; onDone: () => void }) {
   const [answer, setAnswer] = useState(""); const [err, setErr] = useState("");
+  const pw = useRef<HTMLInputElement>(null);
+  async function submitPw() {
+    const v = pw.current?.value ?? ""; if (!v) return;
+    const { error } = await supabase.from("job_prompts").update({ answer: v, status: "answered", answered_at: new Date().toISOString() }).eq("id", p.id).eq("status", "open");
+    if (pw.current) pw.current.value = "";
+    if (error) setErr(error.message); else onDone();
+  }
   const link = p.kind === "confirm" ? p.prompt_text?.match(URL_RE)?.[0] : undefined;
   async function approve() {
     const { error } = await supabase.from("job_prompts").update({ answer: "yes", status: "answered", answered_at: new Date().toISOString() }).eq("id", p.id).eq("status", "open");
@@ -64,7 +71,8 @@ function PromptPanel({ p, onDone }: { p: Prompt; onDone: () => void }) {
       {p.kind === "captcha_audio" && (p.url ? <audio controls src={p.url} /> : <p className="err">Audio not available</p>)}
       {p.kind === "captcha_image" && (p.url ? <img src={p.url} alt="captcha" style={{ maxWidth: "100%" }} /> : <p className="err">Image not available</p>)}
       {link && <div><p><a href={link} target="_blank" rel="noreferrer">Open consent link</a></p><Qr text={link} /><p><button onClick={approve}>I have approved it</button>{err && <span className="err"> {err}</span>}</p></div>}
-      {!link && <><input autoComplete="off" type={p.kind === "field" ? "tel" : "text"} inputMode={p.kind === "field" || p.kind === "otp" ? "numeric" : undefined} name={`prompt-${p.id}`} value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder={p.kind === "confirm" ? "yes / no" : "Answer"} />
+      {p.kind === "password" && <div><input ref={pw} type="password" autoComplete="off" name={`pw-${p.id}`} placeholder="Thuna password" /><button onClick={submitPw}>Submit password</button>{err && <span className="err"> {err}</span>}<p><small>Used once and erased.</small></p></div>}
+      {!link && p.kind !== "password" && <><input autoComplete="off" type={p.kind === "field" ? "tel" : "text"} inputMode={p.kind === "field" || p.kind === "otp" ? "numeric" : undefined} name={`prompt-${p.id}`} value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder={p.kind === "confirm" ? "yes / no" : "Answer"} />
       <button onClick={submit} disabled={!answer.trim()}>Submit answer</button>{err && <span className="err">{err}</span>}</>}
     </div>
   );
@@ -261,6 +269,7 @@ export default function CaseDetail({ id }: { id: string }) {
       {dryOpen && <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}>
         <div className="card" style={{ maxWidth: 480 }} role="dialog" aria-modal="true"><h2>Dry run on REAL portal</h2>
           <p><b>{DRY_WARNING}</b></p>
+          {c.service_id === "thuna_lost_property" && <p><b>Your Thuna password will be used once and erased</b></p>}
           <label><input type="checkbox" style={{ width: "auto" }} checked={dryOk} onChange={(e) => setDryOk(e.target.checked)} /> I am this citizen and this is my own phone number</label>
           <div><button onClick={dryRun} disabled={!dryOk}>Start dry run</button><button className="sec" onClick={() => { setDryOpen(false); setDryOk(false); }}>Close</button></div></div></div>}
       <div className="card"><h2>Timeline</h2>
