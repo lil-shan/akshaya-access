@@ -1,0 +1,3 @@
+# Nothing due: fixture 1150000000000 (Abdul Khader, Rs 0). The agent says nothing is due and starts no payment.
+one one five zero zero zero zero zero zero zero zero zero zero
+yes

@@ -1,0 +1,3 @@
+# Handoff (citizen_request): the citizen gives the number, then asks for a person instead of confirming.
+11554 32100 987
+എനിക്ക് ഒരു മനുഷ്യനോട് സംസാരിക്കണം

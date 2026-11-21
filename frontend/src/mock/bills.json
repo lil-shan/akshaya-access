@@ -1,0 +1,30 @@
+{
+  "_note": "SIMULATED KSEB bills for the ideathon demo. Fake names and numbers. Consumer numbers are 13 digits.",
+  "bills": [
+    {
+      "consumer_number": "1155432100987",
+      "customer_name": "രാജൻ കെ",
+      "customer_name_en": "Rajan K",
+      "amount_inr": 640,
+      "due_date": "2027-02-12",
+      "bill_id": "KSEB-SIM-0001"
+    },
+    {
+      "consumer_number": "1156789012345",
+      "customer_name": "സരസ്വതി അമ്മ",
+      "customer_name_en": "Saraswathi Amma",
+      "amount_inr": 1285,
+      "due_date": "2027-02-09",
+      "bill_id": "KSEB-SIM-0002"
+    },
+    {
+      "consumer_number": "1150000000000",
+      "customer_name": "അബ്ദുൾ ഖാദർ",
+      "customer_name_en": "Abdul Khader",
+      "amount_inr": 0,
+      "due_date": null,
+      "bill_id": "KSEB-SIM-0003",
+      "_note": "no amount due — voice must say there is nothing to pay and not start a payment"
+    }
+  ]
+}

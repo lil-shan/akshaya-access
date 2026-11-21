@@ -1,0 +1,578 @@
+openapi: 3.1.0
+info:
+  title: Akshaya-Access Tools API (ideathon prototype)
+  version: 0.1.0
+  description: 'Backend API used by the voice agent (writes) and the frontend (reads + demo controls).
+
+    Source of truth for all three parts. See README.md for the call sequence and rules.
+
+    '
+servers:
+- url: http://localhost:8000
+paths:
+  /health:
+    get:
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+  /calls:
+    post:
+      summary: Start a call (voice)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - caller_phone
+              - channel
+              properties:
+                caller_phone:
+                  type: string
+                  description: Full number as received; backend stores and returns it masked
+                channel:
+                  type: string
+                  enum:
+                  - phone
+                  - simulator
+                  - audio
+                language:
+                  type: string
+                  default: ml
+              additionalProperties: false
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Call'
+        '422': &id001
+          $ref: '#/components/responses/InvalidRequest'
+    get:
+      summary: List calls, newest first (frontend)
+      parameters:
+      - name: active
+        in: query
+        schema:
+          type: boolean
+        description: true = only calls not ended
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Call'
+  /calls/{call_id}:
+    get:
+      summary: Full call state incl. transcript, bill, payment, handoff (frontend polls this)
+      parameters:
+      - $ref: '#/components/parameters/CallId'
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Call'
+        '404':
+          description: not found
+  /calls/{call_id}/events:
+    post:
+      summary: Append a transcript line or state change (voice)
+      parameters:
+      - $ref: '#/components/parameters/CallId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventIn'
+      responses:
+        '201':
+          description: appended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '409':
+          $ref: '#/components/responses/GuardFailed'
+        '422': *id001
+  /calls/{call_id}/end:
+    post:
+      summary: End the call (voice)
+      parameters:
+      - $ref: '#/components/parameters/CallId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                outcome:
+                  type:
+                  - string
+                  - 'null'
+                  enum:
+                  - paid
+                  - payment_failed
+                  - payment_pending
+                  - nothing_due
+                  - handed_off
+                  - abandoned
+              additionalProperties: false
+      responses:
+        '200':
+          description: ended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Call'
+        '422': *id001
+  /tools/fetch_bill:
+    post:
+      summary: Fetch the bill for a confirmed consumer number (SIMULATED KSEB)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - call_id
+              - consumer_number
+              - number_confirmed
+              properties:
+                call_id:
+                  type: string
+                biller:
+                  type: string
+                  enum:
+                  - KSEB
+                  default: KSEB
+                consumer_number:
+                  type: string
+                  pattern: ^[0-9]{13}$
+                number_confirmed:
+                  type: boolean
+                  description: Citizen said yes after digit-by-digit read-back. Must be true.
+              additionalProperties: false
+      responses:
+        '200':
+          description: found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bill'
+        '404':
+          description: no bill for this number
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          $ref: '#/components/responses/GuardFailed'
+        '422': *id001
+  /tools/confirm_amount:
+    post:
+      summary: Record that the citizen confirmed name + amount after read-back
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - call_id
+              - bill_id
+              - citizen_confirmed
+              properties:
+                call_id:
+                  type: string
+                bill_id:
+                  type: string
+                citizen_confirmed:
+                  type: boolean
+              additionalProperties: false
+      responses:
+        '200':
+          description: recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bill'
+        '409':
+          $ref: '#/components/responses/GuardFailed'
+        '422': *id001
+  /tools/start_payment:
+    post:
+      summary: Start UPI 123PAY payment for the confirmed bill (SIMULATED). No PIN is ever sent here.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - call_id
+              - bill_id
+              properties:
+                call_id:
+                  type: string
+                bill_id:
+                  type: string
+              additionalProperties: false
+      responses:
+        '201':
+          description: started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '409':
+          $ref: '#/components/responses/GuardFailed'
+        '422': *id001
+  /tools/payment_status/{payment_id}:
+    get:
+      parameters:
+      - name: payment_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '404':
+          description: not found
+  /tools/handoff:
+    post:
+      summary: Queue a case for a human (uncertain / unsupported / citizen asked)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - call_id
+              - reason
+              properties:
+                call_id:
+                  type: string
+                reason:
+                  type: string
+                  enum:
+                  - number_unclear
+                  - citizen_request
+                  - unsupported_service
+                  - payment_problem
+                  - other
+                note:
+                  type:
+                  - string
+                  - 'null'
+                  maxLength: 500
+              additionalProperties: false
+      responses:
+        '201':
+          description: queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Handoff'
+        '409':
+          $ref: '#/components/responses/GuardFailed'
+        '422': *id001
+  /simulator/payments/{payment_id}/complete:
+    post:
+      summary: Demo control (frontend button) standing in for the bank's 123PAY IVR result
+      parameters:
+      - name: payment_id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - outcome
+              properties:
+                outcome:
+                  type: string
+                  enum:
+                  - confirmed
+                  - failed
+              additionalProperties: false
+      responses:
+        '200':
+          description: updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '409':
+          description: payment not pending
+        '422': *id001
+components:
+  parameters:
+    CallId:
+      name: call_id
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    InvalidRequest:
+      description: Validation failed. Lists field names only, never submitted values. Applies to every endpoint with a body.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - error
+            - fields
+            properties:
+              error:
+                type: string
+                const: invalid_request
+              fields:
+                type: array
+                items:
+                  type: string
+    GuardFailed:
+      description: A trust rule blocked the action
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - error
+            - reason
+            properties:
+              error:
+                type: string
+                const: guard_failed
+              reason:
+                type: string
+                enum:
+                - number_not_confirmed
+                - amount_not_confirmed
+                - bill_not_found
+                - nothing_due
+                - payment_already_started
+                - call_ended
+                - payment_outcome_without_payment
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        reason:
+          type: string
+    EventIn:
+      type: object
+      required:
+      - type
+      - text
+      properties:
+        type:
+          type: string
+          enum:
+          - agent_said
+          - citizen_said
+          - state
+        text:
+          type: string
+          description: Malayalam (or English) text. For type=state, the new state name.
+        text_en:
+          type:
+          - string
+          - 'null'
+          description: Optional English translation for judges
+      additionalProperties: false
+    Event:
+      allOf:
+      - $ref: '#/components/schemas/EventIn'
+      - type: object
+        required:
+        - seq
+        - at
+        properties:
+          seq:
+            type: integer
+          at:
+            type: string
+            format: date-time
+    Bill:
+      type: object
+      required:
+      - bill_id
+      - consumer_number
+      - customer_name
+      - amount_inr
+      - amount_confirmed
+      - simulated
+      properties:
+        bill_id:
+          type: string
+        biller:
+          type: string
+          const: KSEB
+        consumer_number:
+          type: string
+        customer_name:
+          type: string
+        customer_name_en:
+          type: string
+        amount_inr:
+          type: integer
+          minimum: 0
+        due_date:
+          type:
+          - string
+          - 'null'
+          format: date
+        amount_confirmed:
+          type: boolean
+        simulated:
+          type: boolean
+    Payment:
+      type: object
+      required:
+      - payment_id
+      - bill_id
+      - method
+      - amount_inr
+      - status
+      - simulated
+      properties:
+        payment_id:
+          type: string
+        bill_id:
+          type: string
+        method:
+          type: string
+          const: UPI_123PAY
+        amount_inr:
+          type: integer
+        status:
+          type: string
+          enum:
+          - pending
+          - confirmed
+          - failed
+        reference:
+          type:
+          - string
+          - 'null'
+          description: Bank reference when confirmed
+        simulated:
+          type: boolean
+    Handoff:
+      type: object
+      required:
+      - case_id
+      - case_number
+      - call_id
+      - reason
+      - status
+      properties:
+        case_id:
+          type: string
+        case_number:
+          type: string
+          pattern: ^[0-9]{4}$
+          description: Short number the agent reads aloud
+        call_id:
+          type: string
+        reason:
+          type: string
+        note:
+          type:
+          - string
+          - 'null'
+        status:
+          type: string
+          enum:
+          - queued
+    Call:
+      type: object
+      required:
+      - call_id
+      - caller_phone_masked
+      - channel
+      - state
+      - started_at
+      - events
+      properties:
+        call_id:
+          type: string
+        caller_phone_masked:
+          type: string
+          examples:
+          - '******4321'
+        channel:
+          type: string
+        language:
+          type: string
+        state:
+          type: string
+          enum:
+          - greeting
+          - collecting_number
+          - confirming_number
+          - fetching_bill
+          - confirming_amount
+          - paying
+          - done
+          - handed_off
+          - ended
+        outcome:
+          type:
+          - string
+          - 'null'
+        started_at:
+          type: string
+          format: date-time
+        ended_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+        bill:
+          oneOf:
+          - $ref: '#/components/schemas/Bill'
+          - type: 'null'
+        payment:
+          oneOf:
+          - $ref: '#/components/schemas/Payment'
+          - type: 'null'
+        handoff:
+          oneOf:
+          - $ref: '#/components/schemas/Handoff'
+          - type: 'null'

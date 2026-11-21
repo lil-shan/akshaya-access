@@ -1,0 +1,6 @@
+# Happy path: fixture 1155432100987 (Rajan K, Rs 640). One citizen line per line; lines starting with # are skipped.
+# Against the real backend the payment stays pending until someone presses Confirm/Fail in the frontend
+# (or POSTs /simulator/payments/{payment_id}/complete).
+ഒന്ന് ഒന്ന് അഞ്ച് അഞ്ച് നാല് മൂന്ന് രണ്ട് ഒന്ന് പൂജ്യം പൂജ്യം ഒമ്പത് എട്ട് ഏഴ്
+അതെ
+ശരി

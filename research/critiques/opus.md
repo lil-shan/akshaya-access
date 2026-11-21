@@ -1,0 +1,7 @@
+# Critique — Opus (2026-11-21)
+1. Phone→payment fails for main user; smartphone+UPI users already have WhatsApp bill pay. Fix: nominated payer (child/relative/operator) set once with consent; caller gets voice confirmation; measure "bill paid within 48h", not "link sent". 123PAY advisory only.
+2. Digit capture unmitigated; Sarvam docs index shows no DTMF and (per this reviewer) no live human transfer. Fix: one-time registration at Akshaya centre — operator enters consumer no(s) + payer no linked to caller ID; repeat calls need no digits. Ask Sarvam in writing re DTMF/transfer; else Pipecat + Exotel/Plivo. Smallest Lightning v3.1 retires 30 Nov 2026.
+3. Money contradictory; operators can't pay per case. Fix: operators get referrals for fee-bearing services at official rates (claims, certificates, pension, registration); payer = state/LSG/grant; start State Project Office talks now; don't count BBPS commission.
+4. Entity blocks everything; build week overloaded; sandbox payments prove nothing. Fix: entity this week; Feb phone-only; WhatsApp only carries payer link + receipt; split exit criteria (test-set accuracy vs real sessions after production BBPS).
+5. Claim packs break Aadhaar rule; demand assumed. Fix: 2-week concierge pilot (human answers a published number at 2 centres, logs what callers ask); masked Aadhaar / checklist only.
+Keep: inbound-only, postfunded BBPS, no funds/PIN/OTP, one agent + deterministic tools, code guards, read-back, own test set, own Tools API, India hosting, PMJJBY/PMSBY first, [unverified] tags.

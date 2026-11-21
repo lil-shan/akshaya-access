@@ -1,0 +1,9 @@
+# Critique — Fable (2026-11-21)
+Web: no DTMF page in Sarvam Voice Agents docs (index only); call transfer to human/SIP IS listed. KSEB/KWA appear as BBPS billers on third-party sites. Kerala Kaumudi (June 2024, snippet only) reported KSEB stopped accepting bills via Akshaya/FRIENDS; ~79% already pay online — unconfirmed.
+1. Phone→payment dead-ends for keypad-phone users. Fix: explicit "who pays?" step — family member's WhatsApp (proxy consent), 123PAY if aggregator offers, or "₹X due Y, pay cash at section office" as valid success. Remember consumer no. against caller ID.
+2. Business story contradictory (pay operators vs charge operators). Bill pay commoditised; may not be Akshaya revenue anymore. Fix: interview 8–10 operators in Dec; pick one pilot payer (grant/LSG); bill pay = trust demo, claim packs = differentiator; MoU with Akshaya State Project Office.
+3. Entity is a blocker; build week overloaded; simulated payments with real elderly users burn trust. Fix: decide entity now; build week = phone-only, real bill fetch (read-only), no payment; defer WhatsApp bot; real-user sessions after.
+4. Number capture ungated; DTMF likely unsupported; WhatsApp fallback fails for same user. Fix: ask Sarvam about DTMF now; else IVR digits on Exotel/Plivo before bridging, or Pipecat; Dec test set through Saaras v4 as go/no-go; confirm by BBPS customer name; live call transfer to operator.
+5. Phase 3 contradicts "no Aadhaar" (PMJJBY needs Aadhaar/PAN). User is family/operator, not elderly caller. Fix: checklist-only first; uploads after legal sign-off on masking/retention; drop DigiLocker until needed.
+Simpler path: December Wizard-of-Oz — human follows script by phone with 20 elderly users + offline ASR digit test.
+Keep: inbound-only, no funds, postfunded BBPS, single Tools API, code-enforced trust rules, test set, operator-in-loop, dated KB, [unverified] tags.

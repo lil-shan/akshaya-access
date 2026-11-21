@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "devin": {
+    "org_id": "org-33697a01476048bd9b5ae11003f8b18a"
+  },
+  "shell": {
+    "setup_complete": true
+  },
+  "theme_mode": "dark",
+  "permissions": {
+    "allow": [
+      "Read(/**)",
+      "Write(/home/shan/devin/backend/**)",
+      "Write(~/.npm/**)",
+      "Write(~/.cache/**)",
+      "Write(/tmp/**)",
+      "Exec(npm)",
+      "Exec(npx)",
+      "Exec(node)",
+      "Exec(python3)",
+      "Exec(uv)",
+      "Exec(pip)",
+      "Exec(pytest)",
+      "Exec(git status)",
+      "Exec(git diff)",
+      "Exec(git log)"
+    ],
+    "deny": [
+      "Write(/home/shan/devin/tasks/**)",
+      "Write(/home/shan/devin/frontend/**)",
+      "Write(/home/shan/devin/voice/**)",
+      "Write(/home/shan/devin/reviews/**)",
+      "Write(/home/shan/devin/contracts/**)",
+      "Write(/home/shan/devin/research/**)",
+      "Write(/home/shan/devin/.devin/**)",
+      "Write(/home/shan/devin/.claude/**)",
+      "Write(/home/shan/devin/.git/**)",
+      "Write(/home/shan/devin/scripts/**)",
+      "Write(/home/shan/devin/logs/**)",
+      "Write(/home/shan/devin/*)",
+      "Write(**/.env)",
+      "Exec(sudo)",
+      "Exec(git commit)",
+      "Exec(git push)",
+      "Exec(git reset)",
+      "Exec(git checkout)",
+      "mcp__*",
+      "Write(**/.env.local)",
+      "Write(**/.env.production)"
+    ]
+  }
+}

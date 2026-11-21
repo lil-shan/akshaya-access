@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(/frontend/**)",
+      "Edit(/backend/**)",
+      "Edit(/voice/**)",
+      "Edit(/reviews/**)"
+    ],
+    "allow": [
+      "Bash(scripts/devin-run.sh:*)",
+      "Bash(./scripts/devin-run.sh:*)"
+    ]
+  }
+}
