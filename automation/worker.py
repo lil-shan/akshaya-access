@@ -58,7 +58,7 @@ def ask(db, job, kinds, timeout=PROMPT_TTL, poll=1.0):
                 ans = p["answer"]
                 db.set_prompt(pid, answer=None, status="used")
                 for o in ids:
-                    if o != pid: db.set_prompt(o, status="cancelled")
+                    if o != pid: db.set_prompt(o, status="cancelled", answer=None)
                 db.set_job(job["id"], status="running"); db.set_case(job["case_id"], "running")
                 db.event(job["case_id"], "input_received", f"Citizen answered {k} (value not logged)")
                 return k, ans
@@ -139,6 +139,25 @@ def run_mock(db, job, case, svc):
         if proc: proc.terminate()
     return {"screenshots": shots, "output_pdf": None, "stopped_before_submit": True, "summary": "Mock e-District income certificate filled; stopped at review page."}
 
+def run_portal_dry(db, job, case, svc):
+    """Real-portal dry run (contract v1.2): needs consent 'portal_dry_run' and job mode 'dry_run'. Never submits. See dry_run.py."""
+    import dry_run
+    from playwright.sync_api import sync_playwright
+    if job.get("mode") != "dry_run": raise JobError("mode_not_dry_run")
+    if not db.has_consent(case["id"], "portal_dry_run"): raise JobError("missing_consent:portal_dry_run")
+    cid, shots = case["id"], []
+    def shot(pg, name):
+        p = f"{cid}/{job['id']}/{name}.png"; db.upload(p, pg.screenshot(full_page=True), "image/png"); shots.append(p); db.add_document(cid, "screenshot", p, "screenshot")
+    spec = dry_run.PORTALS[svc["id"]]
+    with sync_playwright() as pw:
+        b = pw.chromium.launch(headless=True); ctx = b.new_context(user_agent=spec["ua"]) if spec.get("ua") else b.new_context(); pg = ctx.new_page()
+        try: r = dry_run.run_dry(pg, db, job, case, svc["id"], shot, ask, base_url=os.environ.get("DRY_RUN_BASE_URL"))
+        except dry_run.AbortRun as e: raise JobError(f"aborted:{e}")
+        finally: b.close()
+    db.event(cid, "stopped_before_submit", f"Dry run ended ({r['stopped_reason']}); nothing submitted")
+    return {"screenshots": shots, "output_pdf": None, "stopped_before_submit": True, "stopped_reason": r["stopped_reason"],
+            "summary": f"Dry run of {svc['id']} on the real portal stopped at: {r['stopped_reason']}. Nothing submitted."}
+
 def process(db, job):
     case = db.get_case(job["case_id"]); svc = db.get_service(case["service_id"])
     sub = svc["submission"]; prior = case["status"]; db.set_case(case["id"], "running"); db.event(case["id"], "job_started", f"Job {job['kind']} ({sub}) started")
@@ -151,7 +170,7 @@ def process(db, job):
         if job["kind"] == "digilocker_fetch": res = run_digilocker(db, job, case)
         elif sub == "pdf": res = run_pdf(db, job, case, svc)
         elif sub == "mock_portal": res = run_mock(db, job, case, svc)
-        elif sub == "portal_dry_run": raise RuntimeError("portal_dry_run is not implemented yet")
+        elif sub == "portal_dry_run": res = run_portal_dry(db, job, case, svc)
         else: raise RuntimeError(f"unsupported submission {sub}")
     except Exception as e:
         err = "citizen_input_timeout" if isinstance(e, InputTimeout) else str(e) if isinstance(e, JobError) else f"{type(e).__name__}: {e}"[:300]

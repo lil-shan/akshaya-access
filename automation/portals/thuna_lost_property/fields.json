@@ -1,0 +1,122 @@
+[
+ {
+  "key": "lost_date_known",
+  "label": "Is the lost date known? (yes/no)",
+  "label_ml": "നഷ്ടപ്പെട്ട തീയതി അറിയാമോ",
+  "type": "select",
+  "required": true,
+  "pattern": "yes|no",
+  "ask_ml": "നഷ്ടപ്പെട്ട ദിവസം കൃത്യമായി അറിയാമോ?",
+  "source": "Thuna: Is lost date known?"
+ },
+ {
+  "key": "lost_date",
+  "label": "Lost date (YYYY-MM-DD) or start of period",
+  "label_ml": "നഷ്ടപ്പെട്ട തീയതി",
+  "type": "date",
+  "required": true,
+  "pattern": "\\d{4}-\\d{2}-\\d{2}",
+  "ask_ml": "ഏത് ദിവസമാണ് നഷ്ടപ്പെട്ടത്?",
+  "source": "Thuna: Lost Date / Lost Date From"
+ },
+ {
+  "key": "lost_date_to",
+  "label": "End of period (YYYY-MM-DD), if date unknown",
+  "label_ml": "ഏത് തീയതി വരെ",
+  "type": "date",
+  "required": false,
+  "pattern": "\\d{4}-\\d{2}-\\d{2}",
+  "ask_ml": "തീയതി ഉറപ്പില്ലെങ്കിൽ, ഏത് തീയതിക്കു മുമ്പാണ് നഷ്ടപ്പെട്ടത്?",
+  "source": "Thuna: Lost Date To"
+ },
+ {
+  "key": "lost_place",
+  "label": "Place where it was lost",
+  "label_ml": "നഷ്ടപ്പെട്ട സ്ഥലം",
+  "type": "text",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "എവിടെ വച്ചാണ് നഷ്ടപ്പെട്ടത്?",
+  "source": "Thuna: Lost Details [assumed]"
+ },
+ {
+  "key": "lost_description",
+  "label": "Description of how it was lost",
+  "label_ml": "നഷ്ടപ്പെട്ട വിവരണം",
+  "type": "textarea",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "എങ്ങനെയാണ് നഷ്ടപ്പെട്ടത്? ചുരുക്കി പറയാമോ?",
+  "source": "Thuna: Description of Lost"
+ },
+ {
+  "key": "property_category",
+  "label": "Property category (e.g. Document, Mobile phone, Bank card)",
+  "label_ml": "വസ്തുവിന്റെ വിഭാഗം",
+  "type": "select",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "എന്താണ് നഷ്ടപ്പെട്ടത്? രേഖയോ ഫോണോ കാർഡോ?",
+  "source": "Thuna: Property Category"
+ },
+ {
+  "key": "property_type",
+  "label": "Property type (e.g. Driving licence, Smartphone)",
+  "label_ml": "വസ്തുവിന്റെ തരം",
+  "type": "text",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "ഏത് തരം? ഉദാഹരണം: ഡ്രൈവിംഗ് ലൈസൻസ്, സ്മാർട്ട്ഫോൺ.",
+  "source": "Thuna: Property Type"
+ },
+ {
+  "key": "item_name",
+  "label": "Item name",
+  "label_ml": "വസ്തുവിന്റെ പേര്",
+  "type": "text",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "വസ്തുവിന്റെ പേര് പറയാമോ?",
+  "source": "Thuna: Item Name"
+ },
+ {
+  "key": "item_number",
+  "label": "Document / item number (not Aadhaar)",
+  "label_ml": "രേഖ / വസ്തു നമ്പർ",
+  "type": "text",
+  "required": false,
+  "pattern": null,
+  "ask_ml": "രേഖയുടെയോ വസ്തുവിന്റെയോ നമ്പർ അറിയാമോ? (ആധാർ നമ്പർ വേണ്ട)",
+  "source": "Thuna: Item Number"
+ },
+ {
+  "key": "imei_no",
+  "label": "IMEI number (mobile phones)",
+  "label_ml": "ഐഎംഇഐ നമ്പർ",
+  "type": "text",
+  "required": false,
+  "pattern": "\\d{15}",
+  "ask_ml": "ഫോൺ ആണെങ്കിൽ ഐഎംഇഐ നമ്പർ അറിയാമോ?",
+  "source": "Thuna: IMEI Number"
+ },
+ {
+  "key": "place_of_issue",
+  "label": "Place of issue (documents)",
+  "label_ml": "നൽകിയ സ്ഥലം",
+  "type": "text",
+  "required": false,
+  "pattern": null,
+  "ask_ml": "രേഖ നൽകിയ ഓഫീസ്/സ്ഥലം ഏതാണ്?",
+  "source": "Thuna: Place of Issue"
+ },
+ {
+  "key": "date_of_issue",
+  "label": "Date of issue (YYYY-MM-DD)",
+  "label_ml": "നൽകിയ തീയതി",
+  "type": "date",
+  "required": false,
+  "pattern": "\\d{4}-\\d{2}-\\d{2}",
+  "ask_ml": "രേഖ നൽകിയ തീയതി അറിയാമോ?",
+  "source": "Thuna: Date of Issue"
+ }
+]

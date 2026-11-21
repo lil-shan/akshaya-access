@@ -1,0 +1,202 @@
+[
+ {
+  "key": "state",
+  "label": "State/UT",
+  "label_ml": "സംസ്ഥാനം",
+  "type": "text",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "ഏത് സംസ്ഥാനത്താണ് താമസിക്കുന്നത്?",
+  "source": "Form 6 constituency"
+ },
+ {
+  "key": "district",
+  "label": "District",
+  "label_ml": "ജില്ല",
+  "type": "text",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "ഏത് ജില്ലയിലാണ് താമസം?",
+  "source": "Form 6 constituency / item 8"
+ },
+ {
+  "key": "assembly_constituency",
+  "label": "Assembly constituency (name or number)",
+  "label_ml": "നിയമസഭാ മണ്ഡലം",
+  "type": "text",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "നിയമസഭാ മണ്ഡലത്തിന്റെ പേര് പറയാമോ?",
+  "source": "Form 6 header"
+ },
+ {
+  "key": "first_name_en",
+  "label": "First (and middle) name, English",
+  "label_ml": "പേര് (ഇംഗ്ലീഷ്)",
+  "type": "text",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "പേര് ഇംഗ്ലീഷ് അക്ഷരങ്ങളിൽ പറയാമോ?",
+  "source": "Form 6 item 1(b)"
+ },
+ {
+  "key": "surname_en",
+  "label": "Surname, English",
+  "label_ml": "വീട്ടുപേര് / സർനെയിം",
+  "type": "text",
+  "required": false,
+  "pattern": null,
+  "ask_ml": "വീട്ടുപേര് ഉണ്ടെങ്കിൽ പറയാമോ?",
+  "source": "Form 6 item 1(b)"
+ },
+ {
+  "key": "relative_relation",
+  "label": "Relative type (father/mother/husband/wife/guardian)",
+  "label_ml": "ബന്ധുവിന്റെ ബന്ധം",
+  "type": "select",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "അച്ഛൻ, അമ്മ, ഭർത്താവ്, ഭാര്യ — ആരുടെ പേരാണ് നൽകേണ്ടത്?",
+  "source": "Form 6 item 2(a)"
+ },
+ {
+  "key": "relative_name_en",
+  "label": "Relative name, English",
+  "label_ml": "ബന്ധുവിന്റെ പേര്",
+  "type": "text",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "ആ ബന്ധുവിന്റെ മുഴുവൻ പേര് പറയാമോ?",
+  "source": "Form 6 item 2(b)"
+ },
+ {
+  "key": "email",
+  "label": "Email (optional)",
+  "label_ml": "ഇമെയിൽ",
+  "type": "email",
+  "required": false,
+  "pattern": "[^@\\s]+@[^@\\s]+\\.[^@\\s]+",
+  "ask_ml": "ഇമെയിൽ വിലാസം ഉണ്ടോ?",
+  "source": "Form 6 item 4"
+ },
+ {
+  "key": "gender",
+  "label": "Gender",
+  "label_ml": "ലിംഗം",
+  "type": "select",
+  "required": true,
+  "pattern": "Male|Female|Third Gender",
+  "ask_ml": "ആണോ പെണ്ണോ മൂന്നാം ലിംഗമോ?",
+  "source": "Form 6 item 6"
+ },
+ {
+  "key": "dob",
+  "label": "Date of birth (YYYY-MM-DD)",
+  "label_ml": "ജനന തീയതി",
+  "type": "date",
+  "required": true,
+  "pattern": "\\d{4}-\\d{2}-\\d{2}",
+  "ask_ml": "ജനന തീയതി പറയാമോ?",
+  "source": "Form 6 item 7(a)"
+ },
+ {
+  "key": "address_house",
+  "label": "House / building no.",
+  "label_ml": "വീട്ടുനമ്പർ / പേര്",
+  "type": "text",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "വീട്ടുനമ്പറോ വീട്ടുപേരോ പറയാമോ?",
+  "source": "Form 6 item 8(a)"
+ },
+ {
+  "key": "address_street",
+  "label": "Street / area / locality",
+  "label_ml": "സ്ഥലം / തെരുവ്",
+  "type": "text",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "സ്ഥലത്തിന്റെ പേര് പറയാമോ?",
+  "source": "Form 6 item 8(a)"
+ },
+ {
+  "key": "address_town",
+  "label": "Town / village",
+  "label_ml": "പട്ടണം / ഗ്രാമം",
+  "type": "text",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "ഏത് ടൗൺ അല്ലെങ്കിൽ ഗ്രാമം?",
+  "source": "Form 6 item 8(a)"
+ },
+ {
+  "key": "address_post_office",
+  "label": "Post office",
+  "label_ml": "പോസ്റ്റ് ഓഫീസ്",
+  "type": "text",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "പോസ്റ്റ് ഓഫീസ് ഏതാണ്?",
+  "source": "Form 6 item 8(a)"
+ },
+ {
+  "key": "address_pincode",
+  "label": "PIN code",
+  "label_ml": "പിൻകോഡ്",
+  "type": "text",
+  "required": true,
+  "pattern": "\\d{6}",
+  "ask_ml": "പിൻകോഡ് പറയാമോ?",
+  "source": "Form 6 item 8(a)"
+ },
+ {
+  "key": "address_taluk",
+  "label": "Tehsil / taluk",
+  "label_ml": "താലൂക്ക്",
+  "type": "text",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "താലൂക്ക് ഏതാണ്?",
+  "source": "Form 6 item 8(a)"
+ },
+ {
+  "key": "residing_since",
+  "label": "Ordinarily resident at this address since (YYYY-MM)",
+  "label_ml": "ഈ വിലാസത്തിൽ താമസിക്കുന്നത് മുതൽ",
+  "type": "text",
+  "required": true,
+  "pattern": "\\d{4}-\\d{2}",
+  "ask_ml": "എത്ര മാസം/വർഷം മുതൽ ഈ വിലാസത്തിലാണ് താമസം?",
+  "source": "Declaration (ii)"
+ },
+ {
+  "key": "birth_place_town",
+  "label": "Place of birth: village/town",
+  "label_ml": "ജനന സ്ഥലം",
+  "type": "text",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "ജനിച്ച സ്ഥലം ഏതാണ്?",
+  "source": "Declaration (i)"
+ },
+ {
+  "key": "birth_place_district",
+  "label": "Place of birth: district",
+  "label_ml": "ജനന ജില്ല",
+  "type": "text",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "ജനിച്ച ജില്ല ഏതാണ്?",
+  "source": "Declaration (i)"
+ },
+ {
+  "key": "birth_place_state",
+  "label": "Place of birth: state/UT",
+  "label_ml": "ജനന സംസ്ഥാനം",
+  "type": "text",
+  "required": true,
+  "pattern": null,
+  "ask_ml": "ജനിച്ച സംസ്ഥാനം ഏതാണ്?",
+  "source": "Declaration (i)"
+ }
+]
