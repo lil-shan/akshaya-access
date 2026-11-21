@@ -1,0 +1,7 @@
+[{"key":"applicant_name","label":"Applicant name","type":"text","required":true},
+ {"key":"dob","label":"Date of birth","type":"date","required":true},
+ {"key":"father_name","label":"Father / spouse name","type":"text","required":true},
+ {"key":"address","label":"Address","type":"text","required":true},
+ {"key":"annual_income","label":"Annual family income (INR)","type":"number","required":true},
+ {"key":"income_source","label":"Source of income","type":"select","options":["Agriculture","Daily wage","Private job","Business","Pension","Other"],"required":true},
+ {"key":"purpose","label":"Purpose of certificate","type":"text","required":true}]

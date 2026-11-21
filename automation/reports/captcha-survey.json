@@ -1,0 +1,124 @@
+[
+ {
+  "portal": "edistrict-kerala",
+  "url": "https://edistrict.kerala.gov.in/",
+  "reachable": "yes (HTTP 200)",
+  "captcha": [
+   "none visible"
+  ],
+  "login": [
+   "none visible"
+  ]
+ },
+ {
+  "portal": "ksmart",
+  "url": "https://ksmart.lsgkerala.gov.in/ui/web-portal",
+  "reachable": "yes (HTTP 200)",
+  "captcha": [
+   "none visible"
+  ],
+  "login": [
+   "none visible"
+  ]
+ },
+ {
+  "portal": "kseb-quickpay",
+  "url": "https://wss.kseb.in/selfservices/quickpay",
+  "reachable": "yes (HTTP 200)",
+  "captcha": [
+   "image (captcha text/element in DOM)"
+  ],
+  "login": [
+   "none visible"
+  ]
+ },
+ {
+  "portal": "kwa-epay",
+  "url": "https://epay.kwa.kerala.gov.in/",
+  "reachable": "yes (HTTP 200)",
+  "captcha": [
+   "reCAPTCHA",
+   "audio option?"
+  ],
+  "login": [
+   "none visible"
+  ]
+ },
+ {
+  "portal": "civil-supplies-ecitizen",
+  "url": "https://ecitizen.civilsupplieskerala.gov.in/",
+  "reachable": "yes (HTTP 200)",
+  "captcha": [
+   "none visible"
+  ],
+  "login": [
+   "none visible"
+  ]
+ },
+ {
+  "portal": "voters-eci",
+  "url": "https://voters.eci.gov.in/login",
+  "reachable": "yes (HTTP 200)",
+  "captcha": [
+   "image (captcha text/element in DOM)"
+  ],
+  "login": [
+   "none visible"
+  ]
+ },
+ {
+  "portal": "pan-protean",
+  "url": "https://www.protean-tinpan.com/",
+  "reachable": "yes (HTTP 200)",
+  "captcha": [
+   "reCAPTCHA"
+  ],
+  "login": [
+   "Aadhaar OTP"
+  ]
+ },
+ {
+  "portal": "pan-incometax-epan",
+  "url": "https://eportal.incometax.gov.in/iec/foservices/#/pre-login/instant-e-pan",
+  "reachable": "no: Page.goto: Timeout 45000ms exceeded.",
+  "captcha": [
+   "n/a"
+  ],
+  "login": [
+   "n/a"
+  ]
+ },
+ {
+  "portal": "passport-seva",
+  "url": "https://services1.passportindia.gov.in/forms/",
+  "reachable": "yes (HTTP 200)",
+  "captcha": [
+   "reCAPTCHA"
+  ],
+  "login": [
+   "none visible"
+  ]
+ },
+ {
+  "portal": "epfo-member",
+  "url": "https://unifiedportal-mem.epfindia.gov.in/memberinterface/",
+  "reachable": "yes (HTTP 500)",
+  "captcha": [
+   "none visible"
+  ],
+  "login": [
+   "none visible"
+  ]
+ },
+ {
+  "portal": "kerala-police-thuna",
+  "url": "https://thuna.keralapolice.gov.in/",
+  "reachable": "yes (HTTP 200)",
+  "captcha": [
+   "image (captcha text/element in DOM)"
+  ],
+  "login": [
+   "none visible"
+  ]
+ }
+]
