@@ -1,5 +1,21 @@
 # Akshaya-Access — Implementation Plan (v2, 2026-11-21)
 
+## Product direction v3 (2026-11-21, overrides older sections where they conflict)
+
+- **Remote Akshaya by phone.** Citizens call us (**inbound only, never outbound**). No human operator on our side:
+  only the citizen, the voice agent and our automation scripts.
+- **CRM is the hub** (Supabase). Voice collects details → CRM case → automation fills the official form → result back to CRM.
+  A **service catalogue** (one definition per service: fields, documents, consents, fee, submission method) drives what the
+  agent asks, what the CRM shows and what Playwright fills. The service is selectable on the call and in the CRM.
+- **Playwright fills portal forms** on the citizen's behalf while they are on the call.
+  - OTPs: the citizen reads the OTP the portal sent; used once immediately; never stored, logged or transcribed.
+  - Captchas: relayed to the citizen, never solved by OCR/ML. Audio captcha → played to the caller, who says it.
+    Image-only captcha → image sent to the caller's WhatsApp, caller reads it out; no smartphone → portal is "later".
+  - UPI PIN: never asked; always entered by the citizen with their bank.
+- **Testing:** dummy data only; **never submit** on a real portal (dry-run stops before the final submit, with screenshots).
+- **Build order:** services that work 100% end to end with dummy data first; the rest later. Voice/phone after the automation works.
+- Providers (DigiLocker, UPI, BBPS): cheapest / free sandboxes — see `reviews/research-07-providers.md`.
+
 ## Ideathon prototype scope (this section overrides the rest for the build)
 
 Decided by the team on 2026-11-21:
