@@ -151,11 +151,12 @@ def run_portal_dry(db, job, case, svc):
     spec = dry_run.PORTALS[svc["id"]]
     with sync_playwright() as pw:
         b = pw.chromium.launch(headless=True); ctx = b.new_context(user_agent=spec["ua"]) if spec.get("ua") else b.new_context(); pg = ctx.new_page()
-        try: r = dry_run.run_dry(pg, db, job, case, svc["id"], shot, ask, base_url=os.environ.get("DRY_RUN_BASE_URL"))
-        except dry_run.AbortRun as e: raise JobError(f"aborted:{e}")
+        structs = []
+        try: r = dry_run.run_dry(pg, db, job, case, svc["id"], shot, ask, base_url=os.environ.get("DRY_RUN_BASE_URL"), structs=structs)
+        except dry_run.AbortRun as e: db.set_job(job["id"], result={"page_structures": structs, "screenshots": shots}); raise JobError(f"aborted:{e}")
         finally: b.close()
     db.event(cid, "stopped_before_submit", f"Dry run ended ({r['stopped_reason']}); nothing submitted")
-    return {"screenshots": shots, "output_pdf": None, "stopped_before_submit": True, "stopped_reason": r["stopped_reason"],
+    return {"screenshots": shots, "output_pdf": None, "stopped_before_submit": True, "stopped_reason": r["stopped_reason"], "page_structures": r["page_structures"],
             "summary": f"Dry run of {svc['id']} on the real portal stopped at: {r['stopped_reason']}. Nothing submitted."}
 
 def process(db, job):

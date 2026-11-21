@@ -5,9 +5,13 @@
   "label_ml": "നഷ്ടപ്പെട്ട തീയതി അറിയാമോ",
   "type": "select",
   "required": true,
-  "pattern": "yes|no",
+  "pattern": null,
   "ask_ml": "നഷ്ടപ്പെട്ട ദിവസം കൃത്യമായി അറിയാമോ?",
-  "source": "Thuna: Is lost date known?"
+  "source": "Thuna: Is lost date known?",
+  "options": [
+   "yes",
+   "no"
+  ]
  },
  {
   "key": "lost_date",
@@ -53,7 +57,7 @@
   "key": "property_category",
   "label": "Property category (e.g. Document, Mobile phone, Bank card)",
   "label_ml": "വസ്തുവിന്റെ വിഭാഗം",
-  "type": "select",
+  "type": "text",
   "required": true,
   "pattern": null,
   "ask_ml": "എന്താണ് നഷ്ടപ്പെട്ടത്? രേഖയോ ഫോണോ കാർഡോ?",

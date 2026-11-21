@@ -135,3 +135,20 @@ def test_aadhaar_page_stops(server):
         b = pw.chromium.launch(headless=True); pg = b.new_page()
         r = dry_run.run_dry(pg, db, {"id": "j", "case_id": "c"}, {"id": "c", "data": {}}, "voter_form6", lambda p, n: db.up.setdefault(n, 1), worker.ask, base_url=server + "/aad"); b.close()
     assert r["stopped_reason"] == "aadhaar_citizen_enters_on_portal"
+
+def test_page_structure_never_captures_values_or_paragraphs(server):
+    STUB["/sens"] = page('<h1>Head</h1><p>SECRETPARAGRAPH</p><label for="m">Mobile</label><input id="m" name="mob" placeholder="Enter mobile" required>'
+                         '<select name="g"><option>Male</option></select><textarea name="t"></textarea><button id="b">Next</button><a href="/x?tok=SECRETQ">Link</a>')
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as pw:
+        b = pw.chromium.launch(headless=True); pg = b.new_page(); pg.goto(server + "/sens?q=SECRETQUERY")
+        pg.fill("#m", "SECRETVALUE"); pg.fill("[name=t]", "SECRETTYPED"); d = dry_run.page_structure(pg); b.close()
+    blob = json.dumps(d)
+    for bad in ("SECRETVALUE", "SECRETTYPED", "SECRETPARAGRAPH", "SECRETQUERY", "SECRETQ"): assert bad not in blob
+    assert d["path"] == "/sens" and d["headings"] == ["Head"] and any(c["id"] == "m" and c["label"] == "Mobile" and c["required"] for c in d["controls"])
+    assert d["controls"][1]["options"] == ["Male"] and d["buttons"][0]["text"] == "Next"
+
+@pytest.mark.parametrize("svc", ["voter_form6", "thuna_lost_property"])
+def test_every_select_has_options_and_no_pattern(svc):
+    for f in dry_run.load_fields(svc):
+        if f["type"] == "select": assert f.get("options") and all(isinstance(o, str) and o for o in f["options"]) and not f.get("pattern"), f["key"]

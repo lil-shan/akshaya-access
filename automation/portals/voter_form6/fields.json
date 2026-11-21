@@ -57,7 +57,14 @@
   "required": true,
   "pattern": null,
   "ask_ml": "അച്ഛൻ, അമ്മ, ഭർത്താവ്, ഭാര്യ — ആരുടെ പേരാണ് നൽകേണ്ടത്?",
-  "source": "Form 6 item 2(a)"
+  "source": "Form 6 item 2(a)",
+  "options": [
+   "Father",
+   "Mother",
+   "Husband",
+   "Wife",
+   "Legal Guardian"
+  ]
  },
  {
   "key": "relative_name_en",
@@ -85,9 +92,14 @@
   "label_ml": "ലിംഗം",
   "type": "select",
   "required": true,
-  "pattern": "Male|Female|Third Gender",
+  "pattern": null,
   "ask_ml": "ആണോ പെണ്ണോ മൂന്നാം ലിംഗമോ?",
-  "source": "Form 6 item 6"
+  "source": "Form 6 item 6",
+  "options": [
+   "Male",
+   "Female",
+   "Third Gender"
+  ]
  },
  {
   "key": "dob",

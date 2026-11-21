@@ -54,13 +54,36 @@ PORTALS = {
 
 def load_fields(service): return json.loads((HERE / "portals" / service / "fields.json").read_text())
 
-def run_dry(page, db, job, case, service, shot, ask, base_url=None, log=None):
+STRUCT_JS = """()=>{
+ const vis=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length);
+ const sel=e=>e.id?'#'+CSS.escape(e.id):e.tagName.toLowerCase()+(e.getAttribute('name')?'[name="'+e.getAttribute('name')+'"]':'')+((e.className&&typeof e.className==='string')?'.'+e.className.trim().split(/\\s+/).slice(0,2).join('.'):'');
+ const lab=e=>{let l=e.id&&document.querySelector('label[for="'+CSS.escape(e.id)+'"]');l=l||e.closest('label');return ((l&&l.innerText)||e.getAttribute('aria-label')||'').trim().slice(0,80)};
+ return {title:document.title,
+  headings:[...document.querySelectorAll('h1,h2,h3,h4')].filter(vis).map(h=>h.innerText.trim().slice(0,80)).slice(0,20),
+  controls:[...document.querySelectorAll('input,select,textarea')].map(e=>({tag:e.tagName.toLowerCase(),type:e.getAttribute('type')||'',id:e.id||'',name:e.getAttribute('name')||'',label:lab(e),
+    placeholder:e.getAttribute('placeholder')||'',required:e.required||e.getAttribute('aria-required')==='true',visible:vis(e),
+    options:e.tagName==='SELECT'?[...e.options].map(o=>o.text.trim().slice(0,60)).slice(0,100):undefined})),
+  buttons:[...document.querySelectorAll('button,input[type=button],input[type=submit]')].filter(vis).map(e=>({text:(e.innerText||'').trim().slice(0,60),selector:sel(e)})).slice(0,40),
+  links:[...document.querySelectorAll('a')].filter(vis).map(e=>({text:e.innerText.trim().slice(0,60),selector:sel(e)})).slice(0,60)}}"""
+
+def page_structure(page):
+    """Sanitized structure only: NO input values, NO paragraph text, no query string. Used to fix selectors after a live discovery run."""
+    d = page.evaluate(STRUCT_JS); d["path"] = page.url.split("?")[0].split("#")[0].split("//", 1)[-1].split("/", 1)[-1] and "/" + page.url.split("?")[0].split("#")[0].split("//", 1)[-1].split("/", 1)[-1]
+    return d
+
+def run_dry(page, db, job, case, service, shot, ask, base_url=None, log=None, structs=None):
     """Drive `page` through the portal spec. Returns result dict. `ask` = worker.ask. Raises AbortRun on unknown page."""
     spec = PORTALS[service]; cid = case["id"]; data = case.get("data") or {}; keys = [f["key"] for f in load_fields(service)]
     ev = lambda m, d=None: db.event(cid, "step", m, d)
+    structs = structs if structs is not None else []
+    def dump():
+        path = f"{cid}/{job['id']}/page-{len(structs) + 1}.json"
+        try: db.upload(path, json.dumps(page_structure(page), ensure_ascii=False).encode(), "application/json"); structs.append(path)
+        except Exception: pass
     page.goto(base_url or spec["url"]); page.wait_for_load_state(); visits = {}; stopped = None
     try:
         for _ in range(MAX_PAGES):
+            dump()
             if page.query_selector(AADHAAR_SEL):
                 shot(page, "aadhaar-stop"); ev("Portal asks for Aadhaar: the citizen enters it on the portal. Dry run stops here.")
                 stopped = "aadhaar_citizen_enters_on_portal"; break
@@ -113,4 +136,4 @@ def run_dry(page, db, job, case, service, shot, ask, base_url=None, log=None):
             try:
                 if page.query_selector(sel): guarded_click(page, sel, set(spec["logout"])); ev("Logged out"); break
             except Exception: pass
-    return {"stopped_before_submit": True, "stopped_reason": stopped, "service": service}
+    return {"stopped_before_submit": True, "stopped_reason": stopped, "service": service, "page_structures": structs}
