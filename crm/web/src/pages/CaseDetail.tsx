@@ -3,6 +3,7 @@ import { supabase } from "../supabase";
 import { validate, type Field } from "../form";
 import DynamicForm from "../DynamicForm";
 import QRCode from "qrcode";
+import { Status, Tier, when } from "../ui";
 
 function Qr({ text }: { text: string }) {
   const [src, setSrc] = useState("");
@@ -64,9 +65,9 @@ function PromptPanel({ p, onDone }: { p: Prompt; onDone: () => void }) {
     if (error) setErr(error.message); else { setAnswer(""); onDone(); }
   }
   return (
-    <div className="card" style={{ borderColor: "#e6a700", borderWidth: 3 }}>
-      <h2>Citizen prompt: {p.kind}</h2>
-      <p>{p.prompt_text}</p>{p.prompt_text_ml && <p className="ml">{p.prompt_text_ml}</p>}
+    <div className="prompt" role="region" aria-label="Citizen prompt">
+      <h2>Citizen prompt <span className="kind">{p.kind}</span></h2>
+      <p className="text">{p.prompt_text}</p>{p.prompt_text_ml && <p className="text ml">{p.prompt_text_ml}</p>}
       {p.expires_at && <p><Countdown to={p.expires_at} /></p>}
       {p.kind === "captcha_audio" && (p.url ? <audio controls src={p.url} /> : <p className="err">Audio not available</p>)}
       {p.kind === "captcha_image" && (p.url ? <img src={p.url} alt="captcha" style={{ maxWidth: "100%" }} /> : <p className="err">Image not available</p>)}
@@ -213,23 +214,32 @@ export default function CaseDetail({ id }: { id: string }) {
     await supabase.from("case_events").insert({ case_id: id, actor: "crm_user", type: "cancelled", message: "Case cancelled" });
   }
 
+  const lastJob = jobs[0]; const failed = c.status === "failed" || lastJob?.status === "failed";
+  const ranAny = jobs.length > 0; const finished = c.status === "done";
+  const stepState = [c.status !== "draft", consents.length > 0, ranAny, ranAny && prompts.length === 0 && (finished || failed || lastJob?.status === "done"), finished];
+  const curIdx = prompts.length ? 3 : stepState.findIndex((x) => !x);
+  const steps = [{ k: "d", t: "Details", ml: "വിവരങ്ങൾ" }, { k: "c", t: "Consent", ml: "സമ്മതം" }, { k: "a", t: "Automation", ml: "ഓട്ടോമേഷൻ" }, { k: "i", t: "Citizen input", ml: "പൗരന്റെ മറുപടി" }, { k: "r", t: "Result", ml: "ഫലം" }]
+    .map((st, i) => ({ ...st, cls: failed && i === (ranAny ? 4 : curIdx) ? "bad" : prompts.length ? (i < 3 ? "done" : i === 3 ? "cur" : "") : stepState[i] && (i < curIdx || curIdx === -1) ? "done" : i === curIdx ? "cur" : "" }));
   return (
     <>
-      <div className="card"><h1>Case {c.case_number} <span className={`badge ${c.status}`}>{c.status}</span></h1>
-        <p>{c.citizens?.full_name} · {c.services.name} <span className="ml">{c.services.name_ml}</span></p></div>
+      <div className="card">
+        <div className="case-head"><div><div className="no">Case {c.case_number}</div><h1>{c.services.name} <span className="ml">{c.services.name_ml}</span></h1>
+          <p style={{ margin: "4px 0 0" }}>{c.citizens?.full_name}</p></div>
+          <div><Status s={c.status} /> <Tier t={c.services.submission} /></div></div>
+        <ol className="steps" aria-label="Progress">{steps.map((st, i) => <li key={st.k} className={st.cls} aria-current={st.cls === "cur" ? "step" : undefined}><i>{st.cls === "done" ? "✓" : st.cls === "bad" ? "!" : i + 1}</i>{st.t}<span className="ml">{st.ml}</span></li>)}</ol></div>
       {prompts.map((p) => <PromptPanel key={p.id} p={p} onDone={loadRest} />)}
       <div className="card"><h2>Details</h2>
         <DynamicForm fields={fields} values={values} errors={shownErrors} disabled={!editable} onChange={(k, v) => setValues({ ...values, [k]: v })} />
         {editable && <button onClick={save}>Save details</button>}{msg && <span className={msg.startsWith("Saved") || msg === "Automation queued." ? "ok" : "err"}> {msg}</span>}
       </div>
       <div className="card"><h2>Documents</h2>
-        <ul>{c.services.documents.map((d) => { const have = docs.filter((x) => x.kind === d.kind);
-          return <li key={d.kind}>{have.length ? "✔" : "○"} {d.label} {d.required ? "" : "(optional)"}</li>; })}</ul>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>{docs.map((x) => <div key={x.id} style={{ maxWidth: 160 }}>
-          {x.url && isImg(x.storage_path) && <a href={x.url} target="_blank" rel="noreferrer"><img src={x.url} alt={x.kind} style={{ width: 150, border: "1px solid #ccc" }} /></a>}
+        <ul className="checklist">{c.services.documents.map((d) => { const have = docs.filter((x) => x.kind === d.kind);
+          return <li key={d.kind}><span className={have.length ? "y" : "n"}>{have.length ? "✔" : "○"}</span> {d.label} {d.required ? "" : "(optional)"}</li>; })}</ul>
+        <div className="gallery">{docs.map((x) => <div key={x.id} className="shot">
+          {x.url && isImg(x.storage_path) && <a href={x.url} target="_blank" rel="noreferrer"><img src={x.url} alt={x.kind} /></a>}
           <div>{x.url ? <a href={x.url} target="_blank" rel="noreferrer">{x.kind}</a> : x.kind} <small>[{x.source}]</small></div></div>)}</div>
         {!docs.length && <p>No documents yet.</p>}
-        <h3>Upload (PDF/JPG/PNG, max 10 MB)</h3>
+        <h3>Upload (PDF, JPG or PNG, max 10 MB)</h3>
         <select value={upKind} onChange={(e) => setUpKind(e.target.value)}><option value="">other</option>{c.services.documents.map((d) => <option key={d.kind} value={d.kind}>{d.label}</option>)}</select>
         <input type="file" accept="application/pdf,image/jpeg,image/png" onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ""; }} />
       </div>
@@ -238,49 +248,49 @@ export default function CaseDetail({ id }: { id: string }) {
         const ref = (pj?.result as unknown as Record<string, unknown> | null) ?? {}; const eko = (ref.eko_reference ?? ref.bill_pay_reference ?? ref.eko_ref) as string | undefined;
         return <div className="card"><h2>KSEB bill payment</h2>
           <button onClick={fetchBill}>Fetch bill</button>
-          {bill && <div className="card" style={{ marginTop: 8 }}><b>{bill.customer_name}</b> · ₹{bill.amount_inr} · due {bill.due_date} {bill.sandbox !== false && <span className="badge failed">SANDBOX</span>}
+          {bill && <div className="pay"><b>{bill.customer_name}</b> · ₹{bill.amount_inr} · due {bill.due_date} {bill.sandbox !== false && <span className="badge failed">SANDBOX</span>}
             <div><button onClick={() => setPayOpen(true)}>Collect payment</button></div></div>}
-          {pays.map((p) => <div key={p.id} style={{ marginTop: 8 }}>Payment ₹{p.amount_inr} ({p.provider}) · <b className={p.status === "failed" ? "err" : p.status === "confirmed" ? "ok" : ""}>{p.status}</b>
+          {pays.map((p) => <div key={p.id} className="pay">Payment ₹{p.amount_inr} ({p.provider}) · <b className={p.status === "failed" ? "err" : p.status === "confirmed" ? "ok" : ""}>{p.status}</b>
             {p.status === "pending" && short && p === pays[0] && <div><a href={short} target="_blank" rel="noreferrer">{short}</a><div><Qr text={short} /></div><small>The citizen pays in their own UPI app. We never ask for a UPI PIN.</small></div>}
-            {p.provider === "upi_qr_demo" && upi && p.status === "pending" && p === pays[0] && <div><p className="err"><b>DEMO ONLY — pays the team's own UPI ID. Never use with real citizens.</b></p><Qr text={upi} /><div><a href={upi}>Open in UPI app</a></div></div>}
+            {p.provider === "upi_qr_demo" && upi && p.status === "pending" && p === pays[0] && <div><p className="demo-warn"><b>DEMO ONLY — pays the team's own UPI ID. Never use with real citizens.</b></p><Qr text={upi} /><div><a href={upi}>Open in UPI app</a></div></div>}
             {p.provider === "upi_qr_demo" && p.status === "pending" && <div><button onClick={() => setPay(p.id, "confirmed")}>Mark received (demo)</button><button className="sec" onClick={() => setPay(p.id, "failed")}>Mark failed</button></div>}
             {p.status === "confirmed" && eko && <div><small>Eko bill-pay reference: {eko}</small></div>}</div>)}
         </div>; })()}
       {payOpen && (() => { const amt = (c.data as unknown as { _bill?: Bill })._bill?.amount_inr;
-        return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}>
-        <div className="card" style={{ maxWidth: 480 }} role="dialog" aria-modal="true"><h2>Collect payment</h2>
+        return <div className="modal-bg">
+        <div className="modal pay" role="dialog" aria-modal="true"><h2>Collect payment</h2>
           <p>Read back to the citizen: the bill amount is <b>₹{amt}</b>. They pay in their own UPI app; never ask for their UPI PIN.</p>
-          <label><input type="checkbox" style={{ width: "auto" }} checked={payOk} onChange={(e) => setPayOk(e.target.checked)} /> Citizen confirmed ₹{amt}</label>
+          <label><input type="checkbox" checked={payOk} onChange={(e) => setPayOk(e.target.checked)} /> Citizen confirmed ₹{amt}</label>
           <div><button onClick={collectPayment} disabled={!payOk}>Create payment link</button><button className="sec" onClick={() => { setPayOpen(false); setPayOk(false); }}>Close</button></div></div></div>; })()}
       <div className="card"><h2>Automation</h2>
         {consents.length > 0 && <p className="ok">Consent recorded {new Date(consents[0].given_at).toLocaleString()}</p>}
-        {editable && <><label><input type="checkbox" style={{ width: "auto" }} checked={agree} onChange={(e) => setAgree(e.target.checked)} /> {CONSENT_TEXT}</label>
+        {editable && <><label><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} /> {CONSENT_TEXT}</label>
           <button onClick={run} disabled={!agree}>Run automation</button><button className="sec" onClick={cancel}>Cancel case</button></>}
-        {editable && c.services.submission === "portal_dry_run" && <button style={{ background: "#b00020" }} onClick={() => setDryOpen(true)}>Dry run on REAL portal</button>}
+        {editable && c.services.submission === "portal_dry_run" && <button className="danger" onClick={() => setDryOpen(true)}>Dry run on REAL portal</button>}
         <button className="sec" onClick={digilocker}>Fetch from DigiLocker (sandbox)</button>
         {jobs.map((j) => { const ls = links[j.id] ?? []; const shots = (j.result?.screenshots ?? []).map(pathOf); const last = shots[shots.length - 1];
           const lnk = (path: string) => ls.find((l) => l.path === path);
           const extra = ls.filter((l) => !shots.includes(l.path));
-          return <div key={j.id} style={{ marginTop: 10 }}>{j.kind} ({j.mode}) · <b>{j.status}</b>{" "}
-            {j.mode === "dry_run" && <span className="badge failed" style={{ background: "#b00020", color: "#fff" }}>DRY RUN · will stop before submit</span>}{" "}
+          return <div key={j.id} className="job"><b>{j.kind}</b> ({j.mode}) · <b>{j.status}</b>{" "}
+            {j.mode === "dry_run" && <span className="badge dry">DRY RUN · will stop before submit</span>}{" "}
             {j.error && <span className="err">{j.error.startsWith("missing_fields:") ? `Missing or invalid fields: ${j.error.slice(15)}` : j.error}</span>}
             {j.result?.summary && <div><small>{j.result.summary}</small></div>}
-            {shots.length > 0 && <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 6 }}>{shots.map((sp, i) => { const u = lnk(sp)?.url; const isLast = sp === last && j.result?.stopped_before_submit !== false;
-              return <div key={sp + i} style={{ width: isLast ? 320 : 150, border: isLast ? "3px solid #e6a700" : "1px solid #ccc", padding: 2 }}>
-                {u ? <a href={u} target="_blank" rel="noreferrer"><img src={u} alt={`step ${i + 1}`} style={{ width: "100%" }} /></a> : <small className="err">not available</small>}
+            {shots.length > 0 && <div className="gallery">{shots.map((sp, i) => { const u = lnk(sp)?.url; const isLast = sp === last && j.result?.stopped_before_submit !== false;
+              return <div key={sp + i} className={isLast ? "shot last" : "shot"}>
+                {u ? <a href={u} target="_blank" rel="noreferrer"><img src={u} alt={`step ${i + 1}`} /></a> : <small className="err">not available</small>}
                 <small>{isLast ? "Stopped before submit" : `Step ${i + 1}`}</small></div>; })}</div>}
             {extra.map((l) => <div key={l.path}>{l.url ? <a href={l.url} target="_blank" rel="noreferrer">{l.path.split("/").pop()}</a> : <span className="err">{l.path} (unavailable)</span>}</div>)}
           </div>; })}
       </div>
-      {dryOpen && <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}>
-        <div className="card" style={{ maxWidth: 480 }} role="dialog" aria-modal="true"><h2>Dry run on REAL portal</h2>
+      {dryOpen && <div className="modal-bg">
+        <div className="modal" role="dialog" aria-modal="true"><h2>Dry run on REAL portal</h2>
           <p><b>{DRY_WARNING}</b></p>
           {c.service_id === "thuna_lost_property" && <p><b>Your Thuna password will be used once and erased</b></p>}
-          <label><input type="checkbox" style={{ width: "auto" }} checked={dryOk} onChange={(e) => setDryOk(e.target.checked)} /> I am this citizen and this is my own phone number</label>
+          <label><input type="checkbox" checked={dryOk} onChange={(e) => setDryOk(e.target.checked)} /> I am this citizen and this is my own phone number</label>
           <div><button onClick={dryRun} disabled={!dryOk}>Start dry run</button><button className="sec" onClick={() => { setDryOpen(false); setDryOk(false); }}>Close</button></div></div></div>}
       <div className="card"><h2>Timeline</h2>
-        {events.map((e) => <div className="ev" key={e.id}><small>{new Date(e.at).toLocaleString()} · {e.actor} · {e.type}</small><div>{e.message}</div></div>)}
-        {!events.length && <p>No events yet.</p>}</div>
+        <ul className="timeline">{events.map((e) => <li key={e.id}><small>{when(e.at)} · {e.actor} · {e.type}</small><div>{e.message}</div></li>)}</ul>
+        {!events.length && <p className="empty">No events yet.</p>}</div>
     </>
   );
 }
