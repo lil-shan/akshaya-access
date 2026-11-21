@@ -27,3 +27,4 @@ __pycache__/
 .cloud.env
 .tools-venv/
 .integrations.env
+callagent/tts_cache/
