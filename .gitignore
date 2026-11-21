@@ -26,3 +26,4 @@ __pycache__/
 .demo/
 .cloud.env
 .tools-venv/
+.integrations.env

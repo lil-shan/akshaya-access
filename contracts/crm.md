@@ -85,3 +85,20 @@ Enable Supabase Realtime on `cases`, `case_events`, `automation_jobs`, `job_prom
   using their own number). The CRM shows a confirmation: "This opens the REAL portal and sends a REAL OTP to your phone.
   Nothing will be submitted." Consent row `kind='portal_dry_run'` required.
 - Portals whose login needs a password (EPFO) are out of scope for automated dry runs.
+
+## v1.3 additions — payments + real DigiLocker sandbox (2026-11-22)
+Keys: `/home/shan/devin/.integrations.env` (git-ignored; names in `integrations.env.example`). Never print/commit values.
+If a provider's keys are empty, its adapter runs in a clearly labelled SIMULATED/MOCK mode and says so in `result`.
+- `kseb_bill_payment` (submission `api`) is handled by the worker with two job kinds (mode `mock` = provider sandbox/test):
+  - `bbps_fetch` — Eko EPS UAT bill fetch by consumer number (local mock server `npx @ekoindia/eps-mock-server` when no keys).
+    Result: `{customer_name, amount_inr, due_date, bill_ref, provider, sandbox:true}`; also merged into `cases.data._bill`.
+  - `payment_collect` — requires `cases.data._bill` and a consent `kind='payment'` with the amount read back. Creates a
+    **Razorpay test-mode Payment Link** (UPI enabled) for exactly that amount → `payments` row `pending`
+    (provider `razorpay_test`, reference = link id); result has `short_url`. Worker polls the link status (≤15 min);
+    on `paid` → `payments.status='confirmed'`, then calls Eko UAT bill-pay (mock) and records its reference in result.
+    Never collect more than the fetched amount; never ask for a UPI PIN (citizen pays in their own UPI app).
+    Note: test mode only. Going live needs the aggregator model where funds settle to the biller, not to us (RBI PA rules).
+- `digilocker_fetch` with keys present: API Setu DigiLocker OAuth 2.0 + PKCE sandbox. The worker creates the consent URL,
+  sends it to the citizen as a `job_prompts` row `kind='confirm'` (prompt_text contains the link; CRM shows it as a link/QR),
+  waits for the redirect/callback code (a tiny local callback endpoint in the worker), then fetches issued documents.
+  Without keys: existing SIMULATED_DIGILOCKER.
