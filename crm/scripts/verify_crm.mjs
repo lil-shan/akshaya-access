@@ -4,7 +4,7 @@ const opt = { auth: { persistSession: false } };
 const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, opt);
 const admin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, opt);
 let fails = 0; const ok = (n, c, d = "") => { console.log(`${c ? "PASS" : "FAIL"} ${n}${!c && d ? " - " + d : ""}`); if (!c) fails++; };
-let caseId, path;
+let caseId, path, shot;
 try {
   const s = await sb.auth.signInWithPassword({ email: process.env.CRM_TEST_EMAIL, password: process.env.CRM_TEST_PASSWORD });
   ok("sign in", !s.error, s.error?.message);
@@ -30,6 +30,19 @@ try {
   ok("insert consent", !k.error, k.error?.message);
   const j = await sb.from("automation_jobs").insert({ case_id: caseId, kind: "digilocker_fetch", mode: "mock", status: "queued" });
   ok("insert digilocker_fetch job", !j.error, j.error?.message);
+  const dk = await sb.from("consents").insert({ case_id: caseId, kind: "portal_dry_run", text: "verify", channel: "crm" });
+  ok("insert portal_dry_run consent", !dk.error, dk.error?.message);
+  const dj = await sb.from("automation_jobs").insert({ case_id: caseId, kind: "portal_fill", mode: "dry_run", status: "queued" }).select("id").single();
+  ok("insert dry_run portal_fill job", !dj.error, dj.error?.message);
+  const pr = await admin.from("job_prompts").insert({ job_id: dj.data?.id, kind: "field", prompt_text: "Mobile number registered for this login", status: "open", expires_at: new Date(Date.now() + 120000).toISOString() }).select("id").single();
+  const ans = await sb.from("job_prompts").update({ answer: "9999999999", status: "answered", answered_at: new Date().toISOString() }).eq("id", pr.data?.id).eq("status", "open").select("status").single();
+  ok("answer field prompt", !pr.error && ans.data?.status === "answered", pr.error?.message ?? ans.error?.message);
+  shot = `${caseId}/${dj.data?.id}/verify.png`;
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  const sup = await admin.storage.from("case-files").upload(shot, png, { contentType: "image/png" });
+  const ssu = await sb.storage.from("case-files").createSignedUrl(shot, 60);
+  const sr = ssu.data ? await fetch(ssu.data.signedUrl) : null;
+  ok("screenshot readable via signed url", !sup.error && sr?.ok && sr.headers.get("content-type")?.includes("image"), sup.error?.message ?? ssu.error?.message);
   const ev = await sb.from("case_events").select("id").eq("case_id", caseId);
   ok("read case_events", !ev.error, ev.error?.message);
   await sb.auth.signOut();
@@ -39,6 +52,7 @@ try {
   ok("anon sees nothing", !a.data?.length && !an.data?.length && !st.data, "cases/services/storage leaked");
 } catch (e) { ok("script error", false, e.message); }
 finally {
+  if (shot) await admin.storage.from("case-files").remove([shot]);
   if (path) await admin.storage.from("case-files").remove([path]);
   if (caseId) await admin.from("cases").delete().eq("id", caseId);
   console.log("cleaned up");

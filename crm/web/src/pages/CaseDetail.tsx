@@ -7,10 +7,23 @@ type Case = { id: string; case_number: string; status: string; service_id: strin
   services: { name: string; name_ml: string; submission: string; fields: Field[]; documents: { kind: string; label: string; required: boolean }[] } };
 type Ev = { id: number; at: string; actor: string; type: string; message: string | null };
 type Doc = { id: string; kind: string; storage_path: string; source: string; url?: string };
-type Job = { id: string; kind: string; mode: string; status: string; error: string | null; created_at: string };
+type Job = { id: string; kind: string; mode: string; status: string; error: string | null; created_at: string; result: Result | null };
+type Result = { screenshots?: (string | { path?: string })[]; output_pdf?: string | null; stopped_before_submit?: boolean; summary?: string; digilocker_docs?: (string | { path?: string; kind?: string })[] };
+type Link = { path: string; url?: string };
 const isImg = (p: string) => /\.(png|jpe?g)$/i.test(p);
 const MAX = 10 * 1024 * 1024; const EXT: Record<string, string> = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png" };
 type Prompt = { id: string; job_id: string; kind: string; prompt_text: string | null; prompt_text_ml: string | null; media_path: string | null; expires_at: string | null; url?: string };
+
+const DRY_WARNING = "This opens the REAL portal and sends a REAL OTP to your phone. Nothing will be submitted.";
+const DRY_CONSENT = "I am this citizen and this is my own phone number. " + DRY_WARNING;
+const pathOf = (x: string | { path?: string }) => (typeof x === "string" ? x : x?.path ?? "");
+
+function Countdown({ to }: { to: string }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
+  const s = Math.max(0, Math.floor((new Date(to).getTime() - now) / 1000));
+  return <small className={s < 15 ? "err" : ""}>{s ? `Expires in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` : "Expired"}</small>;
+}
 
 const DL_CONSENT = "The citizen consents to fetching their documents from DigiLocker (API Setu sandbox, canned dummy data only).";
 const CONSENT_TEXT = "The citizen has consented to Akshaya-Access filling this form on their behalf using the details above, and to relaying OTP/captcha. Dummy data only; nothing is submitted to a real portal.";
@@ -32,10 +45,10 @@ function PromptPanel({ p, onDone }: { p: Prompt; onDone: () => void }) {
     <div className="card" style={{ borderColor: "#e6a700", borderWidth: 3 }}>
       <h2>Citizen prompt: {p.kind}</h2>
       <p>{p.prompt_text}</p>{p.prompt_text_ml && <p className="ml">{p.prompt_text_ml}</p>}
-      {p.expires_at && <p><small>Expires {new Date(p.expires_at).toLocaleTimeString()}</small></p>}
+      {p.expires_at && <p><Countdown to={p.expires_at} /></p>}
       {p.kind === "captcha_audio" && (p.url ? <audio controls src={p.url} /> : <p className="err">Audio not available</p>)}
       {p.kind === "captcha_image" && (p.url ? <img src={p.url} alt="captcha" style={{ maxWidth: "100%" }} /> : <p className="err">Image not available</p>)}
-      <input autoComplete="off" value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder={p.kind === "confirm" ? "yes / no" : "Answer"} />
+      <input autoComplete="off" type={p.kind === "field" ? "tel" : "text"} inputMode={p.kind === "field" || p.kind === "otp" ? "numeric" : undefined} name={`prompt-${p.id}`} value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder={p.kind === "confirm" ? "yes / no" : "Answer"} />
       <button onClick={submit} disabled={!answer.trim()}>Submit answer</button>{err && <span className="err">{err}</span>}
     </div>
   );
@@ -45,6 +58,7 @@ export default function CaseDetail({ id }: { id: string }) {
   const [c, setC] = useState<Case | null>(null); const [events, setEvents] = useState<Ev[]>([]); const [docs, setDocs] = useState<Doc[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]); const [prompts, setPrompts] = useState<Prompt[]>([]); const [consents, setConsents] = useState<{ id: string; given_at: string; kind: string }[]>([]);
   const [values, setValues] = useState<Record<string, string>>({}); const [errors, setErrors] = useState<Record<string, string>>({});
+  const [links, setLinks] = useState<Record<string, Link[]>>({}); const [dryOpen, setDryOpen] = useState(false); const [dryOk, setDryOk] = useState(false);
   const [upKind, setUpKind] = useState(""); const [agree, setAgree] = useState(false); const [msg, setMsg] = useState("");
 
   const loadCase = useCallback(async () => {
@@ -55,11 +69,18 @@ export default function CaseDetail({ id }: { id: string }) {
     const [e, d, j, k] = await Promise.all([
       supabase.from("case_events").select("id,at,actor,type,message").eq("case_id", id).order("at", { ascending: false }),
       supabase.from("documents").select("*").eq("case_id", id).order("created_at"),
-      supabase.from("automation_jobs").select("id,kind,mode,status,error,created_at").eq("case_id", id).order("created_at", { ascending: false }),
+      supabase.from("automation_jobs").select("id,kind,mode,status,error,created_at,result").eq("case_id", id).order("created_at", { ascending: false }),
       supabase.from("consents").select("id,given_at,kind").eq("case_id", id).order("given_at", { ascending: false }),
     ]);
     setEvents((e.data as Ev[]) ?? []); setJobs((j.data as Job[]) ?? []); setConsents(k.data ?? []);
     setDocs(await Promise.all(((d.data as Doc[]) ?? []).map(async (x) => ({ ...x, url: await signed(x.storage_path) }))));
+    const lk: Record<string, Link[]> = {};
+    await Promise.all(((j.data as Job[]) ?? []).map(async (jb) => {
+      const r = jb.result; if (!r) return;
+      const ps = [...(r.screenshots ?? []).map(pathOf), pathOf(r.output_pdf ?? ""), ...(r.digilocker_docs ?? []).map(pathOf)].filter(Boolean);
+      lk[jb.id] = await Promise.all(ps.map(async (path) => ({ path, url: await signed(path) })));
+    }));
+    setLinks(lk);
     const jobIds = ((j.data as Job[]) ?? []).map((x) => x.id);
     if (jobIds.length) {
       const { data: pr } = await supabase.from("job_prompts").select("id,job_id,kind,prompt_text,prompt_text_ml,media_path,expires_at").in("job_id", jobIds).eq("status", "open");
@@ -105,6 +126,16 @@ export default function CaseDetail({ id }: { id: string }) {
     if (error) return setMsg(error.message);
     await supabase.from("case_events").insert({ case_id: id, actor: "crm_user", type: "automation_queued", message: "Consent recorded; automation job queued" });
     setMsg("Automation queued."); setAgree(false);
+  }
+  async function dryRun() {
+    if (!dryOk) return;
+    if (!(await save())) { setDryOpen(false); return; }
+    const { error: ce } = await supabase.from("consents").insert({ case_id: id, kind: "portal_dry_run", text: DRY_CONSENT, channel: "crm" });
+    if (ce) return setMsg(ce.message);
+    const { error } = await supabase.from("automation_jobs").insert({ case_id: id, kind: "portal_fill", mode: "dry_run", status: "queued" });
+    if (error) return setMsg(error.message);
+    await supabase.from("case_events").insert({ case_id: id, actor: "crm_user", type: "automation_queued", message: "Dry-run consent recorded; REAL-portal dry run queued (stops before submit)" });
+    setMsg("Automation queued."); setDryOk(false); setDryOpen(false);
   }
   async function upload(file: File | undefined) {
     if (!file) return;
@@ -157,9 +188,27 @@ export default function CaseDetail({ id }: { id: string }) {
         {consents.length > 0 && <p className="ok">Consent recorded {new Date(consents[0].given_at).toLocaleString()}</p>}
         {editable && <><label><input type="checkbox" style={{ width: "auto" }} checked={agree} onChange={(e) => setAgree(e.target.checked)} /> {CONSENT_TEXT}</label>
           <button onClick={run} disabled={!agree}>Run automation</button><button className="sec" onClick={cancel}>Cancel case</button></>}
+        {editable && c.services.submission === "portal_dry_run" && <button style={{ background: "#b00020" }} onClick={() => setDryOpen(true)}>Dry run on REAL portal</button>}
         <button className="sec" onClick={digilocker}>Fetch from DigiLocker (sandbox)</button>
-        {jobs.map((j) => <div key={j.id}>{j.kind} ({j.mode}) · <b>{j.status}</b> {j.error && <span className="err">{j.error.startsWith("missing_fields:") ? `Missing or invalid fields: ${j.error.slice(15)}` : j.error}</span>}</div>)}
+        {jobs.map((j) => { const ls = links[j.id] ?? []; const shots = (j.result?.screenshots ?? []).map(pathOf); const last = shots[shots.length - 1];
+          const lnk = (path: string) => ls.find((l) => l.path === path);
+          const extra = ls.filter((l) => !shots.includes(l.path));
+          return <div key={j.id} style={{ marginTop: 10 }}>{j.kind} ({j.mode}) · <b>{j.status}</b>{" "}
+            {j.mode === "dry_run" && <span className="badge failed" style={{ background: "#b00020", color: "#fff" }}>DRY RUN · will stop before submit</span>}{" "}
+            {j.error && <span className="err">{j.error.startsWith("missing_fields:") ? `Missing or invalid fields: ${j.error.slice(15)}` : j.error}</span>}
+            {j.result?.summary && <div><small>{j.result.summary}</small></div>}
+            {shots.length > 0 && <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 6 }}>{shots.map((sp, i) => { const u = lnk(sp)?.url; const isLast = sp === last && j.result?.stopped_before_submit !== false;
+              return <div key={sp + i} style={{ width: isLast ? 320 : 150, border: isLast ? "3px solid #e6a700" : "1px solid #ccc", padding: 2 }}>
+                {u ? <a href={u} target="_blank" rel="noreferrer"><img src={u} alt={`step ${i + 1}`} style={{ width: "100%" }} /></a> : <small className="err">not available</small>}
+                <small>{isLast ? "Stopped before submit" : `Step ${i + 1}`}</small></div>; })}</div>}
+            {extra.map((l) => <div key={l.path}>{l.url ? <a href={l.url} target="_blank" rel="noreferrer">{l.path.split("/").pop()}</a> : <span className="err">{l.path} (unavailable)</span>}</div>)}
+          </div>; })}
       </div>
+      {dryOpen && <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}>
+        <div className="card" style={{ maxWidth: 480 }} role="dialog" aria-modal="true"><h2>Dry run on REAL portal</h2>
+          <p><b>{DRY_WARNING}</b></p>
+          <label><input type="checkbox" style={{ width: "auto" }} checked={dryOk} onChange={(e) => setDryOk(e.target.checked)} /> I am this citizen and this is my own phone number</label>
+          <div><button onClick={dryRun} disabled={!dryOk}>Start dry run</button><button className="sec" onClick={() => { setDryOpen(false); setDryOk(false); }}>Close</button></div></div></div>}
       <div className="card"><h2>Timeline</h2>
         {events.map((e) => <div className="ev" key={e.id}><small>{new Date(e.at).toLocaleString()} · {e.actor} · {e.type}</small><div>{e.message}</div></div>)}
         {!events.length && <p>No events yet.</p>}</div>
