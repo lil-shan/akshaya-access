@@ -2,6 +2,16 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { validate, type Field } from "../form";
 import DynamicForm from "../DynamicForm";
+import QRCode from "qrcode";
+
+function Qr({ text }: { text: string }) {
+  const [src, setSrc] = useState("");
+  useEffect(() => { QRCode.toDataURL(text, { width: 180, margin: 1 }).then(setSrc).catch(() => setSrc("")); }, [text]);
+  return src ? <img src={src} alt="QR code" width={180} height={180} /> : null;
+}
+const URL_RE = /https?:\/\/[^\s)]+/;
+type Bill = { customer_name?: string; amount_inr?: number; due_date?: string; sandbox?: boolean };
+type Pay = { id: string; provider: string; amount_inr: number; status: string; reference: string | null; created_at: string };
 
 type Case = { id: string; case_number: string; status: string; service_id: string; data: Record<string, string>; citizens: { full_name: string } | null;
   services: { name: string; name_ml: string; submission: string; fields: Field[]; documents: { kind: string; label: string; required: boolean }[] } };
@@ -36,6 +46,11 @@ async function signed(path: string | null) {
 
 function PromptPanel({ p, onDone }: { p: Prompt; onDone: () => void }) {
   const [answer, setAnswer] = useState(""); const [err, setErr] = useState("");
+  const link = p.kind === "confirm" ? p.prompt_text?.match(URL_RE)?.[0] : undefined;
+  async function approve() {
+    const { error } = await supabase.from("job_prompts").update({ answer: "yes", status: "answered", answered_at: new Date().toISOString() }).eq("id", p.id).eq("status", "open");
+    if (error) setErr(error.message); else onDone();
+  }
   async function submit() {
     // The answer is only written to job_prompts.answer; never to case_events.
     const { error } = await supabase.from("job_prompts").update({ answer, status: "answered", answered_at: new Date().toISOString() }).eq("id", p.id).eq("status", "open");
@@ -48,8 +63,9 @@ function PromptPanel({ p, onDone }: { p: Prompt; onDone: () => void }) {
       {p.expires_at && <p><Countdown to={p.expires_at} /></p>}
       {p.kind === "captcha_audio" && (p.url ? <audio controls src={p.url} /> : <p className="err">Audio not available</p>)}
       {p.kind === "captcha_image" && (p.url ? <img src={p.url} alt="captcha" style={{ maxWidth: "100%" }} /> : <p className="err">Image not available</p>)}
-      <input autoComplete="off" type={p.kind === "field" ? "tel" : "text"} inputMode={p.kind === "field" || p.kind === "otp" ? "numeric" : undefined} name={`prompt-${p.id}`} value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder={p.kind === "confirm" ? "yes / no" : "Answer"} />
-      <button onClick={submit} disabled={!answer.trim()}>Submit answer</button>{err && <span className="err">{err}</span>}
+      {link && <div><p><a href={link} target="_blank" rel="noreferrer">Open consent link</a></p><Qr text={link} /><p><button onClick={approve}>I have approved it</button>{err && <span className="err"> {err}</span>}</p></div>}
+      {!link && <><input autoComplete="off" type={p.kind === "field" ? "tel" : "text"} inputMode={p.kind === "field" || p.kind === "otp" ? "numeric" : undefined} name={`prompt-${p.id}`} value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder={p.kind === "confirm" ? "yes / no" : "Answer"} />
+      <button onClick={submit} disabled={!answer.trim()}>Submit answer</button>{err && <span className="err">{err}</span>}</>}
     </div>
   );
 }
@@ -59,6 +75,7 @@ export default function CaseDetail({ id }: { id: string }) {
   const [jobs, setJobs] = useState<Job[]>([]); const [prompts, setPrompts] = useState<Prompt[]>([]); const [consents, setConsents] = useState<{ id: string; given_at: string; kind: string }[]>([]);
   const [values, setValues] = useState<Record<string, string>>({}); const [errors, setErrors] = useState<Record<string, string>>({});
   const [links, setLinks] = useState<Record<string, Link[]>>({}); const [dryOpen, setDryOpen] = useState(false); const [dryOk, setDryOk] = useState(false);
+  const [pays, setPays] = useState<Pay[]>([]); const [payOpen, setPayOpen] = useState(false); const [payOk, setPayOk] = useState(false);
   const [upKind, setUpKind] = useState(""); const [agree, setAgree] = useState(false); const [msg, setMsg] = useState("");
 
   const loadCase = useCallback(async () => {
@@ -66,6 +83,7 @@ export default function CaseDetail({ id }: { id: string }) {
     setC(data as unknown as Case | null);
   }, [id]);
   const loadRest = useCallback(async () => {
+    supabase.from("payments").select("id,provider,amount_inr,status,reference,created_at").eq("case_id", id).order("created_at", { ascending: false }).then(({ data }) => setPays((data as Pay[]) ?? []));
     const [e, d, j, k] = await Promise.all([
       supabase.from("case_events").select("id,at,actor,type,message").eq("case_id", id).order("at", { ascending: false }),
       supabase.from("documents").select("*").eq("case_id", id).order("created_at"),
@@ -96,9 +114,12 @@ export default function CaseDetail({ id }: { id: string }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "case_events", filter: `case_id=eq.${id}` }, loadRest)
       .on("postgres_changes", { event: "*", schema: "public", table: "automation_jobs", filter: `case_id=eq.${id}` }, loadRest)
       .on("postgres_changes", { event: "*", schema: "public", table: "job_prompts" }, loadRest)
+      .on("postgres_changes", { event: "*", schema: "public", table: "payments", filter: `case_id=eq.${id}` }, loadRest)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id, reload, loadCase, loadRest]);
+  const anyPending = pays.some((x) => x.status === "pending") || jobs.some((x) => x.status === "queued" || x.status === "running");
+  useEffect(() => { if (!anyPending) return; const t = setInterval(() => { loadCase(); loadRest(); }, 4000); return () => clearInterval(t); }, [anyPending, loadCase, loadRest]);
   useEffect(() => { if (c) setValues(c.data ?? {}); }, [c?.id, c?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!c) return <div className="card">Loading…</div>;
@@ -159,6 +180,22 @@ export default function CaseDetail({ id }: { id: string }) {
     await supabase.from("case_events").insert({ case_id: id, actor: "crm_user", type: "digilocker_queued", message: "DigiLocker (sandbox) consent recorded; fetch queued" });
     setMsg("Saved. DigiLocker fetch queued.");
   }
+  async function fetchBill() {
+    const { error } = await supabase.from("automation_jobs").insert({ case_id: id, kind: "bbps_fetch", mode: "mock", status: "queued" });
+    if (error) return setMsg(error.message);
+    await supabase.from("case_events").insert({ case_id: id, actor: "crm_user", type: "bbps_fetch_queued", message: "Bill fetch (sandbox) queued" });
+    setMsg("Saved. Bill fetch queued.");
+  }
+  async function collectPayment() {
+    const amt = (c!.data as unknown as { _bill?: Bill })._bill?.amount_inr;
+    if (!payOk || amt == null) return;
+    const { error: ce } = await supabase.from("consents").insert({ case_id: id, kind: "payment", text: `Citizen confirmed payment of ₹${amt} for this KSEB bill (Razorpay test mode, paid by the citizen in their own UPI app).`, channel: "crm" });
+    if (ce) return setMsg(ce.message);
+    const { error } = await supabase.from("automation_jobs").insert({ case_id: id, kind: "payment_collect", mode: "mock", status: "queued" });
+    if (error) return setMsg(error.message);
+    await supabase.from("case_events").insert({ case_id: id, actor: "crm_user", type: "payment_queued", message: `Payment consent recorded for ₹${amt}; payment link queued` });
+    setMsg("Saved. Payment link queued."); setPayOk(false); setPayOpen(false);
+  }
   async function cancel() {
     await supabase.from("cases").update({ status: "cancelled" }).eq("id", id);
     await supabase.from("case_events").insert({ case_id: id, actor: "crm_user", type: "cancelled", message: "Case cancelled" });
@@ -184,6 +221,23 @@ export default function CaseDetail({ id }: { id: string }) {
         <select value={upKind} onChange={(e) => setUpKind(e.target.value)}><option value="">other</option>{c.services.documents.map((d) => <option key={d.kind} value={d.kind}>{d.label}</option>)}</select>
         <input type="file" accept="application/pdf,image/jpeg,image/png" onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ""; }} />
       </div>
+      {c.service_id === "kseb_bill_payment" && (() => { const bill = (c.data as unknown as { _bill?: Bill })._bill;
+        const pj = jobs.find((j) => j.kind === "payment_collect"); const short = (pj?.result as unknown as { short_url?: string; eko_reference?: string; bill_pay_reference?: string } | null)?.short_url;
+        const ref = (pj?.result as unknown as Record<string, unknown> | null) ?? {}; const eko = (ref.eko_reference ?? ref.bill_pay_reference ?? ref.eko_ref) as string | undefined;
+        return <div className="card"><h2>KSEB bill payment</h2>
+          <button onClick={fetchBill}>Fetch bill</button>
+          {bill && <div className="card" style={{ marginTop: 8 }}><b>{bill.customer_name}</b> · ₹{bill.amount_inr} · due {bill.due_date} {bill.sandbox !== false && <span className="badge failed">SANDBOX</span>}
+            <div><button onClick={() => setPayOpen(true)}>Collect payment</button></div></div>}
+          {pays.map((p) => <div key={p.id} style={{ marginTop: 8 }}>Payment ₹{p.amount_inr} ({p.provider}) · <b className={p.status === "failed" ? "err" : p.status === "confirmed" ? "ok" : ""}>{p.status}</b>
+            {p.status === "pending" && short && p === pays[0] && <div><a href={short} target="_blank" rel="noreferrer">{short}</a><div><Qr text={short} /></div><small>The citizen pays in their own UPI app. We never ask for a UPI PIN.</small></div>}
+            {p.status === "confirmed" && eko && <div><small>Eko bill-pay reference: {eko}</small></div>}</div>)}
+        </div>; })()}
+      {payOpen && (() => { const amt = (c.data as unknown as { _bill?: Bill })._bill?.amount_inr;
+        return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}>
+        <div className="card" style={{ maxWidth: 480 }} role="dialog" aria-modal="true"><h2>Collect payment</h2>
+          <p>Read back to the citizen: the bill amount is <b>₹{amt}</b>. They pay in their own UPI app; never ask for their UPI PIN.</p>
+          <label><input type="checkbox" style={{ width: "auto" }} checked={payOk} onChange={(e) => setPayOk(e.target.checked)} /> Citizen confirmed ₹{amt}</label>
+          <div><button onClick={collectPayment} disabled={!payOk}>Create payment link</button><button className="sec" onClick={() => { setPayOpen(false); setPayOk(false); }}>Close</button></div></div></div>; })()}
       <div className="card"><h2>Automation</h2>
         {consents.length > 0 && <p className="ok">Consent recorded {new Date(consents[0].given_at).toLocaleString()}</p>}
         {editable && <><label><input type="checkbox" style={{ width: "auto" }} checked={agree} onChange={(e) => setAgree(e.target.checked)} /> {CONSENT_TEXT}</label>

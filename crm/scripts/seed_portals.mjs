@@ -14,7 +14,8 @@ for (const [id, [name, name_ml, docs]] of Object.entries(META)) {
   const f = new URL(`../../automation/portals/${id}/fields.json`, import.meta.url);
   if (!existsSync(f)) { console.log(`MISSING ${id}`); process.exitCode = 2; continue; }
   const j = JSON.parse(readFileSync(f, "utf8")); const fields = Array.isArray(j) ? j : j.fields;
-  const row = { id, name: j.name ?? name, name_ml: j.name_ml ?? name_ml, tier: 2, submission: "portal_dry_run", fields, documents: j.documents ?? docs, fee: { amount_inr: 0 }, active: true,
+  const prev = await admin.from("services").select("active").eq("id", id).maybeSingle();
+  const row = { id, name: j.name ?? name, name_ml: j.name_ml ?? name_ml, tier: 2, submission: "portal_dry_run", fields, documents: j.documents ?? docs, fee: { amount_inr: 0 }, active: prev.data?.active ?? true,
     notes: j.notes ?? "REAL portal dry run: stops before submit. Login mobile is requested at run time and never stored." };
   const { error } = await admin.from("services").upsert(row);
   console.log(error ? `FAIL ${id}: ${error.message}` : `SEEDED ${id} (${fields.length} fields)`);

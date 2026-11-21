@@ -37,6 +37,17 @@ try {
   const pr = await admin.from("job_prompts").insert({ job_id: dj.data?.id, kind: "field", prompt_text: "Mobile number registered for this login", status: "open", expires_at: new Date(Date.now() + 120000).toISOString() }).select("id").single();
   const ans = await sb.from("job_prompts").update({ answer: "9999999999", status: "answered", answered_at: new Date().toISOString() }).eq("id", pr.data?.id).eq("status", "open").select("status").single();
   ok("answer field prompt", !pr.error && ans.data?.status === "answered", pr.error?.message ?? ans.error?.message);
+  const bj = await sb.from("automation_jobs").insert({ case_id: caseId, kind: "bbps_fetch", mode: "mock", status: "queued" });
+  ok("insert bbps_fetch job", !bj.error, bj.error?.message);
+  const pc = await sb.from("consents").insert({ case_id: caseId, kind: "payment", text: "Citizen confirmed payment of \u20b9100 (verify)", channel: "crm" });
+  ok("insert payment consent", !pc.error, pc.error?.message);
+  const pj = await sb.from("automation_jobs").insert({ case_id: caseId, kind: "payment_collect", mode: "mock", status: "queued" });
+  ok("insert payment_collect job", !pj.error, pj.error?.message);
+  const pay = await sb.from("payments").select("id").eq("case_id", caseId);
+  ok("read payments", !pay.error, pay.error?.message);
+  const cp = await admin.from("job_prompts").insert({ job_id: dj.data?.id, kind: "confirm", prompt_text: "Approve DigiLocker access: https://example.com/consent?x=1", status: "open", expires_at: new Date(Date.now() + 120000).toISOString() }).select("id").single();
+  const ca = await sb.from("job_prompts").update({ answer: "yes", status: "answered", answered_at: new Date().toISOString() }).eq("id", cp.data?.id).eq("status", "open").select("status").single();
+  ok("answer confirm prompt", !cp.error && ca.data?.status === "answered", cp.error?.message ?? ca.error?.message);
   shot = `${caseId}/${dj.data?.id}/verify.png`;
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
   const sup = await admin.storage.from("case-files").upload(shot, png, { contentType: "image/png" });
