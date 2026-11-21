@@ -1,6 +1,6 @@
 """Automation worker: polls automation_jobs, runs pdf / mock_portal jobs. See contracts/crm.md "Job protocol".
 Never submits on a portal, never solves captchas, never logs OTP/captcha values."""
-import os, sys, time, socket, subprocess, urllib.request, datetime as dt
+import os, re, secrets, sys, time, socket, subprocess, urllib.request, datetime as dt
 from pathlib import Path
 HERE = Path(__file__).parent
 BUCKET = "case-files"
@@ -12,11 +12,12 @@ class JobError(Exception): pass  # error string is stored verbatim (e.g. missing
 def now(): return dt.datetime.now(dt.timezone.utc).isoformat()
 
 def load_env():
-    for f in (HERE / ".env", HERE.parent / ".cloud.env"):
+    for f in (HERE / ".env", HERE.parent / ".cloud.env", HERE.parent / ".integrations.env"):
         if f.exists():
             for l in f.read_text().splitlines():
                 if "=" in l and not l.startswith("#"):
-                    k, v = l.split("=", 1); os.environ.setdefault(k.strip(), v.strip().strip('"\''))
+                    k, v = l.split("=", 1); v = v.strip().strip('"\'')
+                    if v: os.environ.setdefault(k.strip(), v)
 
 class Db:
     """Thin wrapper over supabase-py (service role). Tests substitute a fake with the same methods."""
@@ -39,11 +40,16 @@ class Db:
     def upload(self, path, data, ctype):
         self.c.storage.from_(BUCKET).upload(path, data, {"content-type": ctype, "upsert": "true"})
     def has_consent(self, case_id, kind): return bool(self.c.table("consents").select("id").eq("case_id", case_id).eq("kind", kind).limit(1).execute().data)
+    def consent_texts(self, case_id, kind): return [r["text"] or "" for r in self.c.table("consents").select("text").eq("case_id", case_id).eq("kind", kind).execute().data]
+    def merge_case_data(self, case_id, extra):
+        d = self.get_case(case_id).get("data") or {}; d.update(extra); self.c.table("cases").update({"data": d, "updated_at": now()}).eq("id", case_id).execute()
+    def add_payment(self, row): return self.c.table("payments").insert(row).execute().data[0]["id"]
+    def set_payment(self, pid, **kw): self.c.table("payments").update(kw).eq("id", pid).execute()
     def get_citizen(self, cid): return self.c.table("citizens").select("*").eq("id", cid).single().execute().data
     def add_document(self, case_id, kind, path, source):
         self.c.table("documents").insert({"case_id": case_id, "kind": kind, "storage_path": path, "source": source}).execute()
 
-def ask(db, job, kinds, timeout=PROMPT_TTL, poll=1.0):
+def ask(db, job, kinds, timeout=PROMPT_TTL, poll=1.0, extra=None):
     """kinds: list of (kind, prompt_text, media_path). Opens one prompt per entry, returns (kind, answer) from the
     first one answered. The answer is used once: row set to used + answer nulled immediately. Timeout -> InputTimeout."""
     exp = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=timeout)).isoformat()
@@ -52,6 +58,10 @@ def ask(db, job, kinds, timeout=PROMPT_TTL, poll=1.0):
     db.event(job["case_id"], "waiting_input", "Waiting for citizen: " + ", ".join(k for k, _, _ in kinds))
     end = time.time() + timeout
     while time.time() < end:
+        if extra and (v := extra()) is not None:  # out-of-band answer (e.g. DigiLocker callback); never logged
+            for o in ids: db.set_prompt(o, status="cancelled", answer=None)
+            db.set_job(job["id"], status="running"); db.set_case(job["case_id"], "running")
+            db.event(job["case_id"], "input_received", "Citizen consent callback received (value not logged)"); return "callback", v
         for pid, (k, _, _) in zip(ids, kinds):
             p = db.get_prompt(pid)
             if p["status"] == "answered" and p.get("answer"):
@@ -79,12 +89,72 @@ def missing_fields(fields, data):
 def run_digilocker(db, job, case):
     import digilocker_sim
     if not db.has_consent(case["id"], "digilocker"): raise JobError("missing_consent:digilocker")
-    cit = db.get_citizen(case["citizen_id"]); docs = []
-    for kind, name, data in digilocker_sim.fetch(cit.get("full_name") or "Dummy Citizen", str(cit.get("dob") or "")):
+    cit = db.get_citizen(case["citizen_id"]); docs = []; source = "SIMULATED_DIGILOCKER"
+    import digilocker_real as dl
+    if dl.live():
+        source = "DIGILOCKER_SANDBOX"; verifier, challenge = dl.pkce_pair(); state = secrets.token_urlsafe(16)
+        cb = dl.Callback(os.environ["DIGILOCKER_REDIRECT_URI"], state)
+        try:
+            url = dl.auth_url(os.environ["DIGILOCKER_CLIENT_ID"], os.environ["DIGILOCKER_REDIRECT_URI"], state, challenge)
+            kind, v = ask(db, job, [("confirm", "Open this DigiLocker (sandbox) link and give consent: " + url, None)], timeout=600, extra=cb.poll)
+            try: code = v if kind == "callback" else dl.parse_callback(v, state)
+            except ValueError as e: raise JobError(f"digilocker_{e}")
+        finally: cb.close()
+        fetched = dl.fetch_documents(code, verifier); code = verifier = None
+    else: fetched = digilocker_sim.fetch(cit.get("full_name") or "Dummy Citizen", str(cit.get("dob") or ""))
+    for kind, name, data in fetched:
         path = f"{case['id']}/{job['id']}/{name}"
         db.upload(path, data, "application/pdf"); db.add_document(case["id"], kind, path, "digilocker"); docs.append({"kind": kind, "path": path})
-    db.event(case["id"], "digilocker_fetched", f"Fetched {len(docs)} documents (SIMULATED_DIGILOCKER, dummy data)", {"paths": [d["path"] for d in docs]})
-    return {"documents": docs, "source": "SIMULATED_DIGILOCKER", "summary": f"Fetched {len(docs)} dummy DigiLocker documents (simulated)."}
+    db.event(case["id"], "digilocker_fetched", f"Fetched {len(docs)} documents ({source}, sandbox/dummy data)", {"paths": [d["path"] for d in docs]})
+    return {"documents": docs, "source": source, "summary": f"Fetched {len(docs)} DigiLocker documents ({source})."}
+
+def run_bbps_fetch(db, job, case):
+    import payments
+    d = case.get("data") or {}; bad = [k for k, pat in (("consumer_number", r"[0-9]{13}"), ("payer_mobile", r"[0-9]{10}")) if not re.fullmatch(pat, str(d.get(k) or ""))]
+    if bad: raise JobError("missing_fields: " + ",".join(bad))
+    eko = payments.Eko(); mock = None if eko.live else payments.start_eko_mock(eko.base)
+    try: bill = eko.fetch_bill(str(d["consumer_number"]), str(d["payer_mobile"]))
+    finally:
+        payments.stop_eko_mock(mock)
+    db.merge_case_data(case["id"], {"_bill": bill}); db.event(case["id"], "bill_fetched", f"Bill fetched via {bill['provider']}: Rs {bill['amount_inr']} due {bill['due_date']}", {"amount_inr": bill["amount_inr"]})
+    return dict(bill, summary=f"Bill Rs {bill['amount_inr']} fetched via {bill['provider']} (sandbox).")
+
+def consent_amount_ok(texts, amount):
+    """Consent text must read back the amount as 'Rs 2870' / '₹2,870' / 'INR 2870'."""
+    for t in texts:
+        for m in re.findall(r"(?:₹|Rs\.?|INR)\s*([0-9][0-9,]*(?:\.[0-9]+)?)", t):
+            if float(m.replace(",", "")) == float(amount): return True
+    return False
+
+def run_payment_collect(db, job, case, poll=None, timeout=900):
+    import payments
+    d = case.get("data") or {}; bill = d.get("_bill")
+    if not bill: raise JobError("missing_bill")
+    texts = db.consent_texts(case["id"], "payment")
+    if not texts: raise JobError("missing_consent:payment")
+    amt = bill["amount_inr"]
+    if not consent_amount_ok(texts, amt): raise JobError("amount_mismatch")
+    poll = poll or float(os.environ.get("PAY_POLL_SECONDS") or 5); rz = payments.Razorpay()
+    link = rz.create_link(amt, f"case-{case.get('case_number')}", f"KSEB bill payment Rs {amt} (test mode)")
+    pid = db.add_payment({"case_id": case["id"], "provider": "razorpay_test", "amount_inr": amt, "status": "pending", "reference": link["id"]})
+    db.set_job(job["id"], result={"short_url": link["short_url"], "payment_provider": rz.label, "amount_inr": amt})
+    db.event(case["id"], "payment_link", f"Payment link created ({rz.label}) for Rs {amt}; citizen pays in their own UPI app", {"short_url": link["short_url"]})
+    end = time.time() + timeout; st = None
+    while time.time() < end:
+        st = rz.status(link["id"])
+        if st == "paid": break
+        if st in ("expired", "cancelled"): db.set_payment(pid, status="failed"); raise JobError(f"payment_{st}")
+        time.sleep(poll)
+    else: db.set_payment(pid, status="failed"); raise JobError("payment_timeout")
+    db.set_payment(pid, status="confirmed"); db.event(case["id"], "payment_confirmed", f"Payment confirmed ({rz.label})")
+    eko = payments.Eko(); mock = None if eko.live else payments.start_eko_mock(eko.base)
+    try: pay = eko.pay_bill(str(d["consumer_number"]), str(d["payer_mobile"]), amt, bill)
+    except Exception as e: db.event(case["id"], "bill_pay_failed", "Payment taken but bill-pay failed; needs manual refund/retry"); raise JobError(f"bill_pay_failed_after_payment:{e}"[:200])
+    finally:
+        payments.stop_eko_mock(mock)
+    db.event(case["id"], "bill_paid", f"Bill paid via {pay['provider']} (sandbox), ref {pay['reference']}")
+    return {"short_url": link["short_url"], "payment_provider": rz.label, "amount_inr": amt, "payment_status": "confirmed", "eko": pay, "eko_reference": pay["reference"], "bill_provider": pay["provider"],
+            "summary": f"Paid Rs {amt}: {rz.label} confirmed, bill paid via {pay['provider']} ref {pay['reference']} (sandbox/test)."}
 
 def run_pdf(db, job, case, svc):
     import pdf_filler
@@ -163,12 +233,14 @@ def process(db, job):
     case = db.get_case(job["case_id"]); svc = db.get_service(case["service_id"])
     sub = svc["submission"]; prior = case["status"]; db.set_case(case["id"], "running"); db.event(case["id"], "job_started", f"Job {job['kind']} ({sub}) started")
     try:
-        bad = [] if job["kind"] == "digilocker_fetch" else missing_fields(svc.get("fields"), case.get("data") or {})
+        bad = [] if job["kind"] in ("digilocker_fetch", "bbps_fetch") else missing_fields(svc.get("fields"), case.get("data") or {})
         if bad:
             err = "missing_fields: " + ",".join(bad)
             db.set_job(job["id"], status="failed", error=err, finished_at=now()); db.set_case(case["id"], "draft")
             db.event(case["id"], "job_failed", f"Job failed: {err}"); return
         if job["kind"] == "digilocker_fetch": res = run_digilocker(db, job, case)
+        elif job["kind"] == "bbps_fetch": res = run_bbps_fetch(db, job, case)
+        elif job["kind"] == "payment_collect": res = run_payment_collect(db, job, case)
         elif sub == "pdf": res = run_pdf(db, job, case, svc)
         elif sub == "mock_portal": res = run_mock(db, job, case, svc)
         elif sub == "portal_dry_run": res = run_portal_dry(db, job, case, svc)
@@ -177,7 +249,7 @@ def process(db, job):
         err = "citizen_input_timeout" if isinstance(e, InputTimeout) else str(e) if isinstance(e, JobError) else f"{type(e).__name__}: {e}"[:300]
         db.set_job(job["id"], status="failed", error=err, finished_at=now()); db.set_case(case["id"], "failed")
         db.event(case["id"], "job_failed", f"Job failed: {err}"); return
-    db.set_job(job["id"], status="succeeded", result=res, finished_at=now()); db.set_case(case["id"], prior if job["kind"] == "digilocker_fetch" else "done")
+    db.set_job(job["id"], status="succeeded", result=res, finished_at=now()); db.set_case(case["id"], prior if job["kind"] in ("digilocker_fetch", "bbps_fetch") else "done")
     db.event(case["id"], "job_succeeded", res["summary"])
 
 def loop(db, once=False):
@@ -185,7 +257,7 @@ def loop(db, once=False):
         for job in db.queued_jobs():
             try: svc = db.get_service(db.get_case(job["case_id"])["service_id"])
             except Exception: continue
-            if svc["submission"] == "api" and job["kind"] != "digilocker_fetch": continue
+            if svc["submission"] == "api" and job["kind"] not in ("digilocker_fetch", "bbps_fetch", "payment_collect"): continue
             if db.claim(job["id"]): process(db, job)
         if once: return
         time.sleep(2)

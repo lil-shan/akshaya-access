@@ -36,3 +36,17 @@ Safety guarantees (all tested in `tests/test_dry_run.py`, no real portal touched
 - Unknown page -> abort with screenshot. Aadhaar field on a page -> stop ("citizen enters on portal").
 - Mobile, password, OTP, captcha values: used once, nulled in `job_prompts` (cancelled sibling prompts too), never in events/results/cases.
 - Replay tests serve saved snapshots locally with all non-localhost requests aborted; post-login pages are local [assumed] stand-ins.
+
+## Provider setup (v1.3 payments + DigiLocker) - TEST/SANDBOX ONLY
+Keys go in `../.integrations.env` (git-ignored; names in `../integrations.env.example`). Empty keys = labelled mock mode
+(`EKO_MOCK_SERVER`, `SIMULATED_RAZORPAY`, `SIMULATED_DIGILOCKER`). Verify keys with `.venv/bin/python scripts/check_integrations.py` (OK/FAIL/SKIP, no values).
+- **Razorpay**: Dashboard -> switch to Test Mode -> Account & Settings -> API Keys -> Generate Test Key -> `RAZORPAY_KEY_ID` (rzp_test_...), `RAZORPAY_KEY_SECRET`.
+  Payment Links use `upi_link: true` (set `RAZORPAY_UPI_LINK=false` if the account lacks UPI links). Never use live keys.
+- **Eko EPS (UAT)**: eps.eko.in -> sign up (mobile OTP) -> developer credentials: `EKO_DEVELOPER_KEY`, `EKO_ACCESS_KEY` (signs `secret-key`), `EKO_INITIATOR_ID`, `EKO_USER_CODE`.
+  Base `https://staging.eko.in/ekoapi/v3` (override `EKO_BASE_URL`). BBPS needs service 53 activated for the agent. Set `EKO_KSEB_OPERATOR_ID`
+  (find via `payments.Eko().find_operator("kerala")`; KSEB's id could not be confirmed from public docs). Without keys the worker starts
+  `PORT=4010 npx @ekoindia/eps-mock-server` itself (canned bill Rs 2870).
+- **DigiLocker sandbox**: API Setu partner sandbox (or IDfy trial) -> `DIGILOCKER_CLIENT_ID`, `DIGILOCKER_CLIENT_SECRET`, `DIGILOCKER_REDIRECT_URI`
+  (must be `http://localhost:<port>/callback`; the worker opens that port during a job). OAuth 2.0 + PKCE; consent link is sent as a `confirm` prompt.
+- Payment consent text must read the amount back as `Rs 2870` / `INR 2870` (checked against `_bill.amount_inr`).
+- Tests: `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest`. E2E (`scripts/e2e_all.py`) starts/stops the Eko mock itself.

@@ -56,4 +56,52 @@ if __name__ == "__main__":
     CONSENT[0] = None
     case, j = E.run("pmjjby_claim", CLAIM, "digilocker_fetch", "mock", False)
     check(j["status"] == "failed" and j["error"] == "missing_consent:digilocker", f"digilocker without consent fails (error={j['error']})")
+    # 5. payments: KSEB bill fetch via Eko mock server, Razorpay SIMULATED paid, Eko mock pay
+    import os, subprocess, threading, time, payments
+    from e2e_mock import ROOT
+    os.environ.update(RAZORPAY_KEY_ID="", RAZORPAY_KEY_SECRET="", EKO_DEVELOPER_KEY="", EKO_ACCESS_KEY="", PAY_POLL_SECONDS="1", EKO_MOCK_URL=payments.EKO_MOCK)
+    E.wait_for_catalogue(["kseb_bill_payment"]); mock = payments.start_eko_mock(); print("INFO Eko mock server on", payments.EKO_MOCK)
+    try:
+        KSEB = {"consumer_number": "1234567890123", "payer_mobile": "9000000000", "confirm_amount": "yes"}
+        CONSENT[0] = None
+        case, j = E.run("kseb_bill_payment", KSEB, "bbps_fetch", "mock", False)
+        check(j["status"] == "succeeded" and j["result"]["amount_inr"] > 0 and j["result"]["sandbox"], f"bbps_fetch via {j['result'] and j['result'].get('provider')} (error={j['error']})")
+        data = db.table("cases").select("data").eq("id", case["id"]).single().execute().data["data"]
+        check(data["_bill"]["amount_inr"] == j["result"]["amount_inr"], "bill merged into cases.data._bill")
+        amt = data["_bill"]["amount_inr"]
+        def pay_when_pending():  # test-only: stands in for the citizen paying in their UPI app
+            for _ in range(60):
+                r = db.table("payments").select("reference").eq("case_id", case["id"]).execute().data
+                if r: payments.sim_mark_paid(r[0]["reference"]); return
+                time.sleep(1)
+        def collect(consent_text, c_id=None, drop_bill=False):
+            if consent_text:
+                db.table("consents").insert({"case_id": case["id"], "kind": "payment", "text": consent_text, "channel": "crm"}).execute()
+            jb = db.table("automation_jobs").insert({"case_id": case["id"], "kind": "payment_collect", "mode": "mock", "status": "queued"}).execute().data[0]
+            w = subprocess.Popen([sys.executable, str(ROOT / "worker.py")], cwd=ROOT, env=dict(os.environ))
+            try:
+                for _ in range(90):
+                    jj = db.table("automation_jobs").select("*").eq("id", jb["id"]).single().execute().data
+                    if jj["status"] in ("succeeded", "failed"): return jj
+                    time.sleep(1)
+            finally: w.terminate()
+        # missing consent
+        jj = collect(None); check(jj["status"] == "failed" and jj["error"] == "missing_consent:payment", f"payment_collect without consent fails (error={jj['error']})")
+        # amount mismatch
+        db.table("consents").insert({"case_id": case["id"], "kind": "payment", "text": f"I agree to pay Rs {amt + 1}", "channel": "crm"}).execute()
+        jj = collect(None); check(jj["status"] == "failed" and jj["error"] == "amount_mismatch", f"amount mismatch fails (error={jj['error']})")
+        check(not db.table("payments").select("id").eq("case_id", case["id"]).execute().data, "no payment row created on mismatch")
+        db.table("consents").delete().eq("case_id", case["id"]).eq("kind", "payment").execute()
+        # happy path
+        threading.Thread(target=pay_when_pending, daemon=True).start()
+        jj = collect(f"I agree to pay Rs {amt} for my KSEB bill (test mode)")
+        check(jj["status"] == "succeeded", f"payment_collect succeeded (error={jj['error']})")
+        pays = db.table("payments").select("*").eq("case_id", case["id"]).execute().data
+        check(len(pays) == 1 and pays[0]["status"] == "confirmed" and pays[0]["provider"] == "razorpay_test" and pays[0]["amount_inr"] == amt, "payments row confirmed")
+        check(jj["result"]["eko_reference"] == jj["result"]["eko"]["reference"] and jj["result"]["payment_provider"] == "SIMULATED_RAZORPAY", f"Eko mock pay reference {jj['result']['eko']['reference']}, link {jj['result']['short_url']}")
+        # missing _bill
+        case2, j2 = E.run("kseb_bill_payment", KSEB, "payment_collect", "mock", False)
+        check(j2["status"] == "failed" and j2["error"] == "missing_bill", f"payment_collect without _bill fails (error={j2['error']})")
+    finally:
+        payments.stop_eko_mock(mock)
     print("E2E ALL OK")

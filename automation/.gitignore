@@ -5,3 +5,4 @@ mock_portals/edistrict/sms.log
 mock_portals/edistrict/captcha_answer.txt
 mock_portals/edistrict/SUBMITTED
 mock_portals/edistrict/tts_cache/
+.sim_razorpay/

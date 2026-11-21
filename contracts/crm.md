@@ -95,7 +95,7 @@ If a provider's keys are empty, its adapter runs in a clearly labelled SIMULATED
   - `payment_collect` — requires `cases.data._bill` and a consent `kind='payment'` with the amount read back. Creates a
     **Razorpay test-mode Payment Link** (UPI enabled) for exactly that amount → `payments` row `pending`
     (provider `razorpay_test`, reference = link id); result has `short_url`. Worker polls the link status (≤15 min);
-    on `paid` → `payments.status='confirmed'`, then calls Eko UAT bill-pay (mock) and records its reference in result.
+    on `paid` → `payments.status='confirmed'`, then calls Eko UAT bill-pay (mock) and records its reference as top-level `result.eko_reference`.
     Never collect more than the fetched amount; never ask for a UPI PIN (citizen pays in their own UPI app).
     Note: test mode only. Going live needs the aggregator model where funds settle to the biller, not to us (RBI PA rules).
 - `digilocker_fetch` with keys present: API Setu DigiLocker OAuth 2.0 + PKCE sandbox. The worker creates the consent URL,
