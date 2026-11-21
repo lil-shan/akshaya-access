@@ -57,3 +57,15 @@ Enable Supabase Realtime on `cases`, `case_events`, `automation_jobs`, `job_prom
 6. On finish: `succeeded` with `result` = `{"screenshots": [...], "output_pdf": "...", "stopped_before_submit": true, "summary": "..."}`
    (paths in `case-files`), or `failed` with `error`. Case → `done` / `failed`.
 7. Expired prompt → job `failed` with error `citizen_input_timeout`.
+
+## v1.1 additions (2026-11-21)
+- **Required-field check:** before any job touches a portal/PDF, the worker validates `cases.data` against `services.fields`
+  (required + pattern). Missing/invalid → job `failed`, `error = "missing_fields: key1,key2"` (keys only, never values); case → `draft`.
+- **DigiLocker (sandbox):** new `automation_jobs.kind = 'digilocker_fetch'` (mode `mock`). Requires a `consents` row with
+  `kind='digilocker'`. The worker calls the **API Setu DigiLocker sandbox** (canned data) — or a clearly-labelled local
+  simulation if the sandbox needs credentials — and stores each fetched document in `case-files/<case_id>/<job_id>/` with a
+  `documents` row (`source='digilocker'`). `result.documents` lists them. No real citizen data, ever.
+- **Uploads from the CRM:** authenticated users may upload to `case-files/<case_id>/uploads/<file>` (storage insert policy);
+  each upload gets a `documents` row (`source='upload'`). Max 10 MB; pdf/jpg/png only.
+- **Captcha audio:** the mock portal speaks its captcha digits using Sarvam Bulbul TTS (cached wav files); the beep fallback
+  remains when no key is available.
