@@ -1,0 +1,204 @@
+{
+ "id": "pmjjby_claim",
+ "name": "PMJJBY claim (death claim)",
+ "name_ml": "പിഎംജെജെബിവൈ ക്ലെയിം",
+ "category": "insurance",
+ "tier": 1,
+ "submission": "pdf",
+ "fields": [
+  {
+   "key": "insured_name",
+   "type": "text",
+   "label": "Insured (deceased) name",
+   "ask_ml": "ഇൻഷുർ ചെയ്ത വ്യക്തിയുടെ മുഴുവൻ പേര് പറയാമോ?",
+   "source": null,
+   "pattern": null,
+   "label_ml": "ഇൻഷുർ ചെയ്ത വ്യക്തിയുടെ പേര്",
+   "required": true
+  },
+  {
+   "key": "insured_dob",
+   "type": "date",
+   "label": "Insured date of birth",
+   "ask_ml": "ജനനത്തീയതി പറയാമോ?",
+   "source": null,
+   "pattern": null,
+   "label_ml": "ഇൻഷുർ ചെയ്ത വ്യക്തിയുടെ ജനനത്തീയതി",
+   "required": true
+  },
+  {
+   "key": "date_of_death",
+   "type": "date",
+   "label": "Date of death / accident",
+   "ask_ml": "മരണം സംഭവിച്ച തീയതി ഏതാണ്?",
+   "source": null,
+   "pattern": null,
+   "label_ml": "മരണ / അപകട തീയതി",
+   "required": true
+  },
+  {
+   "key": "cause_of_death",
+   "type": "text",
+   "label": "Cause of death",
+   "ask_ml": "മരണകാരണം എന്താണ്?",
+   "source": null,
+   "pattern": null,
+   "label_ml": "മരണകാരണം",
+   "required": true
+  },
+  {
+   "key": "place_of_death",
+   "type": "text",
+   "label": "Place of death",
+   "ask_ml": "മരണം നടന്നത് എവിടെയാണ്?",
+   "source": null,
+   "pattern": null,
+   "label_ml": "മരണം നടന്ന സ്ഥലം",
+   "required": true
+  },
+  {
+   "key": "policy_number",
+   "type": "text",
+   "label": "Policy / enrolment number (if known)",
+   "ask_ml": "പോളിസി നമ്പർ അറിയാമെങ്കിൽ പറയാമോ?",
+   "source": null,
+   "pattern": null,
+   "label_ml": "പോളിസി / എൻറോൾമെന്റ് നമ്പർ",
+   "required": false
+  },
+  {
+   "key": "insured_bank_account",
+   "type": "account_number",
+   "label": "Insured's bank account number",
+   "ask_ml": "മരിച്ച വ്യക്തിയുടെ ബാങ്ക് അക്കൗണ്ട് നമ്പർ പറയാമോ?",
+   "source": null,
+   "pattern": "^[0-9]{9,18}$",
+   "label_ml": "ഇൻഷുർ ചെയ്ത വ്യക്തിയുടെ അക്കൗണ്ട് നമ്പർ",
+   "required": true
+  },
+  {
+   "key": "claimant_name",
+   "type": "text",
+   "label": "Nominee / claimant name",
+   "ask_ml": "അപേക്ഷകന്റെ മുഴുവൻ പേര് പറയാമോ?",
+   "source": "citizen.full_name",
+   "pattern": null,
+   "label_ml": "നോമിനി / അപേക്ഷകന്റെ പേര്",
+   "required": true
+  },
+  {
+   "key": "claimant_relationship",
+   "type": "select",
+   "label": "Relationship with insured",
+   "ask_ml": "മരിച്ച വ്യക്തിയുമായുള്ള ബന്ധം എന്താണ്?",
+   "source": null,
+   "options": [
+    "Spouse",
+    "Son",
+    "Daughter",
+    "Parent",
+    "Other"
+   ],
+   "pattern": null,
+   "label_ml": "ഇൻഷുർ ചെയ്ത വ്യക്തിയുമായുള്ള ബന്ധം",
+   "required": true
+  },
+  {
+   "key": "claimant_dob",
+   "type": "date",
+   "label": "Claimant date of birth",
+   "ask_ml": "നിങ്ങളുടെ ജനനത്തീയതി പറയാമോ?",
+   "source": "citizen.dob",
+   "pattern": null,
+   "label_ml": "അപേക്ഷകന്റെ ജനനത്തീയതി",
+   "required": true
+  },
+  {
+   "key": "claimant_address",
+   "type": "text",
+   "label": "Claimant address",
+   "ask_ml": "നിങ്ങളുടെ വിലാസം പറയാമോ?",
+   "source": "citizen.address.line",
+   "pattern": null,
+   "label_ml": "അപേക്ഷകന്റെ വിലാസം",
+   "required": true
+  },
+  {
+   "key": "claimant_mobile",
+   "type": "phone",
+   "label": "Claimant mobile",
+   "ask_ml": "മൊബൈൽ നമ്പർ പറയാമോ?",
+   "source": null,
+   "pattern": "^[0-9]{10}$",
+   "label_ml": "അപേക്ഷകന്റെ മൊബൈൽ നമ്പർ",
+   "required": true
+  },
+  {
+   "key": "claimant_bank_name",
+   "type": "text",
+   "label": "Claimant bank & branch",
+   "ask_ml": "ക്ലെയിം തുക ലഭിക്കേണ്ട ബാങ്കും ബ്രാഞ്ചും ഏതാണ്?",
+   "source": null,
+   "pattern": null,
+   "label_ml": "ബാങ്കും ബ്രാഞ്ചും",
+   "required": true
+  },
+  {
+   "key": "claimant_account",
+   "type": "account_number",
+   "label": "Claimant bank account number",
+   "ask_ml": "അക്കൗണ്ട് നമ്പർ പറയാമോ?",
+   "source": null,
+   "pattern": "^[0-9]{9,18}$",
+   "label_ml": "അപേക്ഷകന്റെ അക്കൗണ്ട് നമ്പർ",
+   "required": true
+  },
+  {
+   "key": "claimant_ifsc",
+   "type": "ifsc",
+   "label": "IFSC code",
+   "ask_ml": "ബാങ്കിന്റെ ഐഎഫ്എസ്‌സി കോഡ് പറയാമോ?",
+   "source": null,
+   "pattern": "^[A-Z]{4}0[A-Z0-9]{6}$",
+   "label_ml": "ഐഎഫ്എസ്‌സി കോഡ്",
+   "required": true
+  }
+ ],
+ "documents": [
+  {
+   "kind": "claim_form",
+   "label": "Claim form (filled by us)",
+   "label_ml": "ക്ലെയിം ഫോം",
+   "required": true
+  },
+  {
+   "kind": "death_certificate",
+   "label": "Death certificate",
+   "label_ml": "മരണ സർട്ടിഫിക്കറ്റ്",
+   "required": true
+  },
+  {
+   "kind": "claimant_id",
+   "label": "Claimant ID proof (Aadhaar)",
+   "label_ml": "തിരിച്ചറിയൽ രേഖ",
+   "required": true
+  },
+  {
+   "kind": "bank_passbook",
+   "label": "Bank passbook first page / cancelled cheque",
+   "label_ml": "ബാങ്ക് പാസ്ബുക്ക്",
+   "required": true
+  },
+  {
+   "kind": "discharge_receipt",
+   "label": "Discharge receipt (signed)",
+   "label_ml": "ഡിസ്ചാർജ് രസീത്",
+   "required": true
+  }
+ ],
+ "fee": {
+  "amount_inr": 0
+ },
+ "active": true,
+ "notes": "Claim-cum-discharge form PDF is generated; checklist for citizen. Dummy data only. Source: https://jansuraksha.gov.in (PMJJBY claim-cum-discharge form)."
+}

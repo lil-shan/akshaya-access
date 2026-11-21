@@ -1,0 +1,46 @@
+{
+ "id": "kseb_bill_payment",
+ "name": "KSEB electricity bill payment",
+ "name_ml": "കെഎസ്ഇബി വൈദ്യുതി ബിൽ അടയ്ക്കൽ",
+ "category": "bills",
+ "tier": 3,
+ "submission": "api",
+ "fields": [
+  {
+   "key": "consumer_number",
+   "type": "number",
+   "label": "KSEB consumer number",
+   "ask_ml": "കെഎസ്ഇബി കൺസ്യൂമർ നമ്പർ പറയാമോ?",
+   "source": null,
+   "pattern": "^[0-9]{13}$",
+   "label_ml": "കൺസ്യൂമർ നമ്പർ",
+   "required": true
+  },
+  {
+   "key": "payer_mobile",
+   "type": "phone",
+   "label": "Payer mobile",
+   "ask_ml": "മൊബൈൽ നമ്പർ പറയാമോ?",
+   "source": null,
+   "pattern": "^[0-9]{10}$",
+   "label_ml": "മൊബൈൽ നമ്പർ",
+   "required": true
+  },
+  {
+   "key": "confirm_amount",
+   "type": "yesno",
+   "label": "Amount confirmed by citizen",
+   "ask_ml": "ബിൽ തുക ശരിയാണോ? അടയ്ക്കട്ടെ?",
+   "source": null,
+   "pattern": null,
+   "label_ml": "തുക സ്ഥിരീകരിച്ചു",
+   "required": true
+  }
+ ],
+ "documents": [],
+ "fee": {
+  "convenience_inr": 0
+ },
+ "active": true,
+ "notes": "Bill fetch and payment are SIMULATED. PIN only with bank IVR. Eko BBPS (sandbox/mock). Operator: Kerala State Electricity Board. https://developers.eko.in"
+}

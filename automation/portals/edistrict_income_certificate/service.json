@@ -1,0 +1,123 @@
+{
+ "id": "edistrict_income_certificate",
+ "name": "Income certificate (e-District, mock portal)",
+ "name_ml": "വരുമാന സർട്ടിഫിക്കറ്റ് (ഇ-ഡിസ്ട്രിക്ട്)",
+ "category": "certificates",
+ "tier": 2,
+ "submission": "mock_portal",
+ "fields": [
+  {
+   "key": "applicant_name",
+   "type": "text",
+   "label": "Applicant name",
+   "ask_ml": "അപേക്ഷകന്റെ പേര് പറയാമോ?",
+   "source": "citizen.full_name",
+   "pattern": null,
+   "label_ml": "അപേക്ഷകന്റെ പേര്",
+   "required": true
+  },
+  {
+   "key": "dob",
+   "type": "date",
+   "label": "Date of birth",
+   "ask_ml": "ജനനത്തീയതി പറയാമോ?",
+   "source": "citizen.dob",
+   "pattern": null,
+   "label_ml": "ജനനത്തീയതി",
+   "required": true
+  },
+  {
+   "key": "mobile",
+   "type": "phone",
+   "label": "Mobile number (OTP is sent here)",
+   "ask_ml": "ഒടിപി വരേണ്ട മൊബൈൽ നമ്പർ പറയാമോ?",
+   "source": null,
+   "pattern": "^[0-9]{10}$",
+   "label_ml": "മൊബൈൽ നമ്പർ",
+   "required": true
+  },
+  {
+   "key": "father_name",
+   "type": "text",
+   "label": "Father / spouse name",
+   "ask_ml": "പിതാവിന്റെ അല്ലെങ്കിൽ ഭർത്താവിന്റെ പേര് പറയാമോ?",
+   "source": null,
+   "pattern": null,
+   "label_ml": "പിതാവിന്റെ / ഭർത്താവിന്റെ പേര്",
+   "required": true
+  },
+  {
+   "key": "address",
+   "type": "text",
+   "label": "Address",
+   "ask_ml": "വിലാസം പറയാമോ?",
+   "source": "citizen.address.line",
+   "pattern": null,
+   "label_ml": "വിലാസം",
+   "required": true
+  },
+  {
+   "key": "annual_income",
+   "type": "number",
+   "label": "Annual family income (INR)",
+   "ask_ml": "കുടുംബത്തിന്റെ വാർഷിക വരുമാനം എത്രയാണ്?",
+   "source": null,
+   "pattern": null,
+   "label_ml": "വാർഷിക കുടുംബ വരുമാനം (രൂപ)",
+   "required": true
+  },
+  {
+   "key": "income_source",
+   "type": "select",
+   "label": "Source of income",
+   "ask_ml": "വരുമാന മാർഗം എന്താണ്?",
+   "source": null,
+   "options": [
+    "Agriculture",
+    "Daily wage",
+    "Private job",
+    "Business",
+    "Pension",
+    "Other"
+   ],
+   "pattern": null,
+   "label_ml": "വരുമാന മാർഗം",
+   "required": true
+  },
+  {
+   "key": "purpose",
+   "type": "text",
+   "label": "Purpose of certificate",
+   "ask_ml": "ഈ സർട്ടിഫിക്കറ്റ് എന്തിനാണ് ആവശ്യം?",
+   "source": null,
+   "pattern": null,
+   "label_ml": "സർട്ടിഫിക്കറ്റിന്റെ ആവശ്യം",
+   "required": true
+  }
+ ],
+ "documents": [
+  {
+   "kind": "aadhaar",
+   "label": "Aadhaar (masked copy)",
+   "label_ml": "ആധാർ",
+   "required": true
+  },
+  {
+   "kind": "ration_card",
+   "label": "Ration card",
+   "label_ml": "റേഷൻ കാർഡ്",
+   "required": true
+  },
+  {
+   "kind": "income_proof",
+   "label": "Income declaration / proof",
+   "label_ml": "വരുമാന രേഖ",
+   "required": false
+  }
+ ],
+ "fee": {
+  "amount_inr": 0
+ },
+ "active": true,
+ "notes": "Mock portal only. Stops before submit. Real service: https://edistrict.kerala.gov.in (Revenue). Automation runs the local MOCK portal only."
+}

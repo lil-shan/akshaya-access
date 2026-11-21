@@ -1,0 +1,157 @@
+{
+ "id": "ksmart_birth_certificate",
+ "name": "Birth certificate (K-SMART style, mock portal)",
+ "name_ml": "ജനന സർട്ടിഫിക്കറ്റ് (കെ-സ്മാർട്ട്)",
+ "category": "certificates",
+ "tier": 2,
+ "submission": "mock_portal",
+ "fields": [
+  {
+   "key": "mobile",
+   "label": "Mobile number (portal login OTP)",
+   "label_ml": "മൊബൈൽ നമ്പർ",
+   "type": "phone",
+   "required": true,
+   "pattern": "^[0-9]{10}$",
+   "ask_ml": "OTP വരുന്ന മൊബൈൽ നമ്പർ പറയാമോ?",
+   "source": null
+  },
+  {
+   "key": "child_name",
+   "label": "Child's name",
+   "label_ml": "കുഞ്ഞിന്റെ പേര്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "കുഞ്ഞിന്റെ പേര് പറയാമോ?",
+   "source": null
+  },
+  {
+   "key": "child_dob",
+   "label": "Date of birth",
+   "label_ml": "ജനനത്തീയതി",
+   "type": "date",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "കുഞ്ഞ് ജനിച്ച തീയതി പറയാമോ?",
+   "source": null
+  },
+  {
+   "key": "child_sex",
+   "label": "Sex",
+   "label_ml": "ലിംഗം",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ആണോ പെണ്ണോ?",
+   "source": null,
+   "options": [
+    "Male",
+    "Female",
+    "Other"
+   ]
+  },
+  {
+   "key": "birth_place",
+   "label": "Place of birth (hospital / home)",
+   "label_ml": "ജനന സ്ഥലം",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ജനിച്ച ആശുപത്രി / സ്ഥലം ഏതാണ്?",
+   "source": null
+  },
+  {
+   "key": "birth_district",
+   "label": "District of birth",
+   "label_ml": "ജില്ല",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ഏത് ജില്ല?",
+   "source": null,
+   "options": [
+    "Thiruvananthapuram",
+    "Kollam",
+    "Pathanamthitta",
+    "Alappuzha",
+    "Kottayam",
+    "Idukki",
+    "Ernakulam",
+    "Thrissur",
+    "Palakkad",
+    "Malappuram",
+    "Kozhikode",
+    "Wayanad",
+    "Kannur",
+    "Kasaragod"
+   ]
+  },
+  {
+   "key": "father_name",
+   "label": "Father's name",
+   "label_ml": "പിതാവിന്റെ പേര്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "അച്ഛന്റെ പേര് പറയാമോ?",
+   "source": null
+  },
+  {
+   "key": "mother_name",
+   "label": "Mother's name",
+   "label_ml": "മാതാവിന്റെ പേര്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "അമ്മയുടെ പേര് പറയാമോ?",
+   "source": null
+  },
+  {
+   "key": "address",
+   "label": "Address",
+   "label_ml": "വിലാസം",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "വിലാസം പറയാമോ?",
+   "source": "citizen.address"
+  },
+  {
+   "key": "informant_name",
+   "label": "Informant name",
+   "label_ml": "വിവരം നൽകുന്നയാളുടെ പേര്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "വിവരം നൽകുന്നയാളുടെ പേര്?",
+   "source": "citizen.full_name"
+  }
+ ],
+ "documents": [
+  {
+   "kind": "hospital_report",
+   "label": "Hospital discharge / birth report",
+   "label_ml": "ആശുപത്രി റിപ്പോർട്ട്",
+   "required": true
+  },
+  {
+   "kind": "parents_id",
+   "label": "Parents' ID proof",
+   "label_ml": "മാതാപിതാക്കളുടെ തിരിച്ചറിയൽ രേഖ",
+   "required": true
+  },
+  {
+   "kind": "marriage_cert",
+   "label": "Parents' marriage certificate",
+   "label_ml": "വിവാഹ സർട്ടിഫിക്കറ്റ്",
+   "required": false
+  }
+ ],
+ "fee": {
+  "amount_inr": 0,
+  "note": "Free within 21 days of birth; late fee applies after (approx Rs 2 for 21-30 days, Rs 5 up to 1 year; later needs RDO order). Verify with the local registrar."
+ },
+ "active": true,
+ "notes": "Real service: Kerala LSGD K-SMART https://ksmart.lsgkerala.gov.in (Registration of Births and Deaths Act 1969, Kerala Rules 1999; Form 1 birth report). Automation runs a K-SMART-STYLE local MOCK only (mobile OTP + audio captcha); nothing is submitted."
+}

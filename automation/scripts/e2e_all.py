@@ -25,7 +25,35 @@ CLAIM = {"insured_name": "E2E Dummy Insured", "insured_dob": "1970-01-01", "date
 INCOME = {"applicant_name": "E2E Dummy Citizen", "dob": "1980-01-01", "mobile": "9000000000", "father_name": "Dummy Father",
     "address": "1 Test Road, Kochi", "annual_income": "90000", "income_source": "Daily wage", "purpose": "Scholarship"}
 
+import json, re, glob, os
+def dummy(f):
+    """Plausible dummy value for a service.json field (E2E only)."""
+    t, p = f["type"], f.get("pattern") or ""
+    if t == "select": return f["options"][0]
+    if t == "yesno": return "yes"
+    if t == "date": return "1990-01-01"
+    if t == "phone": return "9000000000"
+    if t == "ifsc": return "SBIN0000001"
+    if t == "account_number": return "123456789012"
+    m = re.search(r"\{(\d+)(?:,\d+)?\}", p)
+    if p and m: return "1234567890123"[:int(m.group(1))] if "[0-9]" in p else "A" * int(m.group(1))
+    return "10" if t == "number" else f"E2E {f['key']}"
+
+def upsert_missing_services(ids):
+    """Self-contained: create services rows from portals/<id>/service.json when the orchestrator has not seeded them yet (existing rows untouched)."""
+    have = {r["id"] for r in db.table("services").select("id").execute().data}
+    for sid in ids:
+        if sid in have: continue
+        d = json.load(open(E.ROOT / "portals" / sid / "service.json"))
+        db.table("services").insert({k: d[k] for k in ("id", "name", "name_ml", "category", "tier", "submission", "fields", "documents", "fee", "active", "notes")}).execute()
+        print("INFO inserted services row", sid)
+
+NEW_MOCK = ["edistrict_nativity_certificate", "edistrict_residence_certificate", "edistrict_community_certificate", "edistrict_relationship_certificate", "ksmart_birth_certificate", "ration_card_add_member"]
+NEW_PDF = ["pmfby_crop_loss", "pan_form49a_prep", "passport_prep", "epf_withdrawal_prep"]
+
 if __name__ == "__main__":
+    os.environ["MOCK_URL"] = "http://127.0.0.1:8791"   # own mock-portal port; never the user's
+    upsert_missing_services(NEW_MOCK + NEW_PDF + ["voter_form8", "kwa_water_bill"])
     E.wait_for_catalogue(["edistrict_income_certificate", "pmjjby_claim", "pmsby_claim"])
     # 1. missing fields
     bad = {k: v for k, v in CLAIM.items() if k not in ("claimant_name", "claimant_ifsc")}; bad["claimant_account"] = "SECRET-bad"
@@ -114,6 +142,28 @@ if __name__ == "__main__":
         # missing _bill
         case2, j2 = E.run("kseb_bill_payment", KSEB, "payment_collect", "mock", False)
         check(j2["status"] == "failed" and j2["error"] == "missing_bill", f"payment_collect without _bill fails (error={j2['error']})")
+        # v1.6: KWA water bill through the same Eko mock code path (water operator)
+        E.wait_for_catalogue(["kwa_water_bill"]); CONSENT[0] = None
+        KWA = {"consumer_number": "1234567890", "payer_mobile": "9000000000", "confirm_amount": "yes"}
+        case, j = E.run("kwa_water_bill", KWA, "bbps_fetch", "mock", False)
+        check(j["status"] == "succeeded" and j["result"]["amount_inr"] > 0, f"kwa_water_bill bbps_fetch via {j['result'] and j['result'].get('provider')} (error={j['error']})")
+        amt = j["result"]["amount_inr"]; threading.Thread(target=pay_when_pending, daemon=True).start()
+        jj = collect(f"I agree to pay Rs {amt} for my Kerala Water Authority bill (test mode)")
+        check(jj["status"] == "succeeded" and jj["result"]["eko_reference"], f"kwa_water_bill payment_collect succeeded, Eko ref {jj['result'] and jj['result'].get('eko_reference')} (error={jj['error']})")
     finally:
         payments.stop_eko_mock(mock)
+    # v1.6: one job per new mock-portal / pdf service (voter_form8 is replay-test only: tests/test_services_v16.py)
+    for sid in NEW_MOCK:
+        svc = json.load(open(E.ROOT / "portals" / sid / "service.json")); data = {f["key"]: dummy(f) for f in svc["fields"]}
+        (MOCK / "SUBMITTED").unlink(missing_ok=True); CONSENT[0] = "automation"
+        case, j = E.run(sid, data, "portal_fill", "mock", True)
+        check(j["status"] == "succeeded" and j["result"]["stopped_before_submit"] and len(j["result"]["screenshots"]) >= 4 and not (MOCK / "SUBMITTED").exists(), f"{sid} mock job stopped before submit (error={j['error']})")
+        blob = str(db.table("case_events").select("*").eq("case_id", case["id"]).execute().data) + str(j["result"])
+        check((MOCK / "captcha_answer.txt").read_text().strip() not in blob, f"{sid} captcha value not logged")
+    for sid in NEW_PDF:
+        svc = json.load(open(E.ROOT / "portals" / sid / "service.json")); data = {f["key"]: dummy(f) for f in svc["fields"]}
+        case, j = E.run(sid, data, "fill_pdf", "mock", False)
+        check(j["status"] == "succeeded", f"{sid} pdf job succeeded (error={j['error']})")
+        pdf = db.storage.from_("case-files").download(j["result"]["output_pdf"]); check(pdf[:4] == b"%PDF", f"{sid} sheet in storage ({len(pdf)} bytes)")
+    print("INFO voter_form8: real-portal dry run, replay test only (pytest tests/test_services_v16.py)")
     print("E2E ALL OK")

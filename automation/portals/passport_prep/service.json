@@ -1,0 +1,256 @@
+{
+ "id": "passport_prep",
+ "name": "Passport application preparation sheet",
+ "name_ml": "പാസ്പോർട്ട് അപേക്ഷ തയ്യാറാക്കൽ",
+ "category": "identity",
+ "tier": 1,
+ "submission": "pdf",
+ "fields": [
+  {
+   "key": "given_name",
+   "label": "Given name",
+   "label_ml": "പേര്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "പേര് പറയാമോ?",
+   "source": "citizen.full_name"
+  },
+  {
+   "key": "surname",
+   "label": "Surname",
+   "label_ml": "സർനെയിം",
+   "type": "text",
+   "required": false,
+   "pattern": null,
+   "ask_ml": "സർനെയിം?",
+   "source": null
+  },
+  {
+   "key": "dob",
+   "label": "Date of birth",
+   "label_ml": "ജനനത്തീയതി",
+   "type": "date",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ജനനത്തീയതി പറയാമോ?",
+   "source": "citizen.dob"
+  },
+  {
+   "key": "place_of_birth",
+   "label": "Place of birth (village/town, district, state)",
+   "label_ml": "ജനന സ്ഥലം",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ജനിച്ച സ്ഥലം?",
+   "source": null
+  },
+  {
+   "key": "gender",
+   "label": "Gender",
+   "label_ml": "ലിംഗം",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ആണോ പെണ്ണോ?",
+   "source": null,
+   "options": [
+    "Male",
+    "Female",
+    "Transgender"
+   ]
+  },
+  {
+   "key": "marital_status",
+   "label": "Marital status",
+   "label_ml": "വൈവാഹിക നില",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "വിവാഹിതനാണോ?",
+   "source": null,
+   "options": [
+    "Single",
+    "Married",
+    "Divorced",
+    "Widowed"
+   ]
+  },
+  {
+   "key": "father_name",
+   "label": "Father's name",
+   "label_ml": "പിതാവിന്റെ പേര്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "അച്ഛന്റെ പേര്?",
+   "source": null
+  },
+  {
+   "key": "mother_name",
+   "label": "Mother's name",
+   "label_ml": "മാതാവിന്റെ പേര്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "അമ്മയുടെ പേര്?",
+   "source": null
+  },
+  {
+   "key": "spouse_name",
+   "label": "Spouse name",
+   "label_ml": "ഭാര്യ/ഭർത്താവിന്റെ പേര്",
+   "type": "text",
+   "required": false,
+   "pattern": null,
+   "ask_ml": "പങ്കാളിയുടെ പേര്?",
+   "source": null
+  },
+  {
+   "key": "address_line",
+   "label": "Present address",
+   "label_ml": "നിലവിലെ വിലാസം",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "വിലാസം?",
+   "source": "citizen.address"
+  },
+  {
+   "key": "pincode",
+   "label": "PIN code",
+   "label_ml": "പിൻ കോഡ്",
+   "type": "text",
+   "required": true,
+   "pattern": "^[0-9]{6}$",
+   "ask_ml": "പിൻ കോഡ്?",
+   "source": null
+  },
+  {
+   "key": "mobile",
+   "label": "Mobile",
+   "label_ml": "മൊബൈൽ",
+   "type": "phone",
+   "required": true,
+   "pattern": "^[0-9]{10}$",
+   "ask_ml": "മൊബൈൽ നമ്പർ?",
+   "source": null
+  },
+  {
+   "key": "email",
+   "label": "Email",
+   "label_ml": "ഇമെയിൽ",
+   "type": "text",
+   "required": false,
+   "pattern": null,
+   "ask_ml": "ഇമെയിൽ?",
+   "source": null
+  },
+  {
+   "key": "application_type",
+   "label": "Type",
+   "label_ml": "അപേക്ഷയുടെ തരം",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "പുതിയ പാസ്പോർട്ടാണോ പുതുക്കലാണോ?",
+   "source": null,
+   "options": [
+    "Fresh passport",
+    "Re-issue (renewal)"
+   ]
+  },
+  {
+   "key": "booklet_pages",
+   "label": "Booklet",
+   "label_ml": "ബുക്ക്‌ലെറ്റ്",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "36 പേജോ 60 പേജോ?",
+   "source": null,
+   "options": [
+    "36 pages",
+    "60 pages"
+   ]
+  },
+  {
+   "key": "scheme",
+   "label": "Scheme",
+   "label_ml": "പദ്ധതി",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "സാധാരണമോ തത്കാലോ?",
+   "source": null,
+   "options": [
+    "Normal",
+    "Tatkal"
+   ]
+  },
+  {
+   "key": "passport_office",
+   "label": "Passport Seva Kendra (RPO)",
+   "label_ml": "പാസ്പോർട്ട് സേവാ കേന്ദ്രം",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ഏത് പാസ്പോർട്ട് ഓഫീസ്?",
+   "source": null,
+   "options": [
+    "Thiruvananthapuram",
+    "Kochi",
+    "Kozhikode"
+   ]
+  },
+  {
+   "key": "ecr_check",
+   "label": "Emigration Check Required? (below 10th pass)",
+   "label_ml": "ഇസിആർ",
+   "type": "yesno",
+   "required": false,
+   "pattern": null,
+   "ask_ml": "പത്താം ക്ലാസ് പാസ്സായിട്ടുണ്ടോ?",
+   "source": null
+  }
+ ],
+ "documents": [
+  {
+   "kind": "address_proof",
+   "label": "Address proof (Aadhaar / electricity bill / bank passbook)",
+   "label_ml": "വിലാസ രേഖ",
+   "required": true
+  },
+  {
+   "kind": "dob_proof",
+   "label": "Date-of-birth proof (birth certificate / SSLC)",
+   "label_ml": "ജനന രേഖ",
+   "required": true
+  },
+  {
+   "kind": "old_passport",
+   "label": "Old passport (re-issue)",
+   "label_ml": "പഴയ പാസ്പോർട്ട്",
+   "required": false
+  },
+  {
+   "kind": "appointment",
+   "label": "PSK appointment receipt (book on portal)",
+   "label_ml": "അപ്പോയിന്റ്മെന്റ് രസീത്",
+   "required": true
+  },
+  {
+   "kind": "photo",
+   "label": "Recent photo (taken at PSK)",
+   "label_ml": "ഫോട്ടോ",
+   "required": false
+  }
+ ],
+ "fee": {
+  "amount_inr": 1500,
+  "note": "Fresh/re-issue 36 pages Rs 1500, 60 pages Rs 2000, Tatkal +Rs 2000. Verify on the portal."
+ },
+ "active": true,
+ "notes": "PDF preparation sheet only. Citizen registers, fills and pays on https://www.passportindia.gov.in (Passport Seva) and books the PSK appointment there. Document list: https://www.passportindia.gov.in/AppOnlineProject/online/docAdvisor"
+}

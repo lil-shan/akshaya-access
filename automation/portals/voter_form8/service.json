@@ -1,0 +1,150 @@
+{
+ "id": "voter_form8",
+ "name": "Voter: shift residence / correct entries (ECI Form 8) - real portal dry run",
+ "name_ml": "വോട്ടർ വിലാസം മാറ്റം / തിരുത്തൽ (ഫോം 8)",
+ "category": "elections",
+ "tier": 2,
+ "submission": "portal_dry_run",
+ "fields": [
+  {
+   "key": "state",
+   "label": "State/UT",
+   "label_ml": "സംസ്ഥാനം",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ഏത് സംസ്ഥാനം?",
+   "source": "Form 8 constituency"
+  },
+  {
+   "key": "district",
+   "label": "District",
+   "label_ml": "ജില്ല",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ഏത് ജില്ല?",
+   "source": null
+  },
+  {
+   "key": "assembly_constituency",
+   "label": "Assembly constituency",
+   "label_ml": "നിയമസഭാ മണ്ഡലം",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ഏത് നിയമസഭാ മണ്ഡലം?",
+   "source": null
+  },
+  {
+   "key": "epic_number",
+   "label": "Voter ID (EPIC) number",
+   "label_ml": "വോട്ടർ ഐഡി നമ്പർ",
+   "type": "text",
+   "required": true,
+   "pattern": "^[A-Za-z]{3}[0-9]{7}$",
+   "ask_ml": "വോട്ടർ ഐഡി നമ്പർ പറയാമോ?",
+   "source": null
+  },
+  {
+   "key": "form8_reason",
+   "label": "Reason",
+   "label_ml": "കാരണം",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "വിലാസം മാറ്റമാണോ തിരുത്തലാണോ?",
+   "source": null,
+   "options": [
+    "Shifting of residence",
+    "Correction of entries",
+    "Replacement of EPIC",
+    "Marking as PwD"
+   ]
+  },
+  {
+   "key": "correction_field",
+   "label": "What to correct (if correction)",
+   "label_ml": "തിരുത്തേണ്ട വിവരം",
+   "type": "select",
+   "required": false,
+   "pattern": null,
+   "ask_ml": "എന്താണ് തിരുത്തേണ്ടത്?",
+   "source": null,
+   "options": [
+    "Name",
+    "Photo",
+    "Age / date of birth",
+    "Relative's name",
+    "Gender",
+    "Address",
+    "Mobile number"
+   ]
+  },
+  {
+   "key": "address_house",
+   "label": "New house / building",
+   "label_ml": "പുതിയ വീട് നമ്പർ / പേര്",
+   "type": "text",
+   "required": false,
+   "pattern": null,
+   "ask_ml": "പുതിയ വീട്ടുപേര് / നമ്പർ?",
+   "source": null
+  },
+  {
+   "key": "address_street",
+   "label": "New street / locality",
+   "label_ml": "തെരുവ് / പ്രദേശം",
+   "type": "text",
+   "required": false,
+   "pattern": null,
+   "ask_ml": "തെരുവ് / പ്രദേശം?",
+   "source": null
+  },
+  {
+   "key": "address_pincode",
+   "label": "New PIN code",
+   "label_ml": "പിൻ കോഡ്",
+   "type": "text",
+   "required": false,
+   "pattern": "^[0-9]{6}$",
+   "ask_ml": "പുതിയ പിൻ കോഡ്?",
+   "source": null
+  },
+  {
+   "key": "residing_since",
+   "label": "Residing at new address since (YYYY-MM-DD)",
+   "label_ml": "താമസം തുടങ്ങിയ തീയതി",
+   "type": "date",
+   "required": false,
+   "pattern": null,
+   "ask_ml": "എന്ന് മുതൽ അവിടെ താമസിക്കുന്നു?",
+   "source": null
+  }
+ ],
+ "documents": [
+  {
+   "kind": "address_proof",
+   "label": "Address proof (for shifting)",
+   "label_ml": "വിലാസ രേഖ",
+   "required": true
+  },
+  {
+   "kind": "correction_proof",
+   "label": "Proof for the correction (SSLC / birth certificate)",
+   "label_ml": "തിരുത്തലിനുള്ള രേഖ",
+   "required": false
+  },
+  {
+   "kind": "photo",
+   "label": "Photo (for photo replacement)",
+   "label_ml": "ഫോട്ടോ",
+   "required": false
+  }
+ ],
+ "fee": {
+  "amount_inr": 0
+ },
+ "active": true,
+ "notes": "REAL portal dry run: stops before submit. Source: Form 8 on https://voters.eci.gov.in (public pages only); post-login steps are [assumed], same login/denylist as Form 6. Citizen enters EPIC/Aadhaar on the portal where it asks; no Aadhaar number is stored here."
+}

@@ -1,0 +1,184 @@
+{
+ "id": "epf_withdrawal_prep",
+ "name": "EPF withdrawal claim preparation sheet",
+ "name_ml": "ഇപിഎഫ് പിൻവലിക്കൽ തയ്യാറാക്കൽ",
+ "category": "employment",
+ "tier": 1,
+ "submission": "pdf",
+ "fields": [
+  {
+   "key": "member_name",
+   "label": "Member name",
+   "label_ml": "അംഗത്തിന്റെ പേര്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "പേര് പറയാമോ?",
+   "source": "citizen.full_name"
+  },
+  {
+   "key": "uan",
+   "label": "UAN (12 digits)",
+   "label_ml": "യുഎഎൻ",
+   "type": "number",
+   "required": true,
+   "pattern": "^[0-9]{12}$",
+   "ask_ml": "യുഎഎൻ നമ്പർ പറയാമോ?",
+   "source": null
+  },
+  {
+   "key": "dob",
+   "label": "Date of birth",
+   "label_ml": "ജനനത്തീയതി",
+   "type": "date",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ജനനത്തീയതി പറയാമോ?",
+   "source": "citizen.dob"
+  },
+  {
+   "key": "father_or_spouse",
+   "label": "Father / spouse name",
+   "label_ml": "പിതാവിന്റെ / ഭർത്താവിന്റെ പേര്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "അച്ഛന്റെ / ഭർത്താവിന്റെ പേര്?",
+   "source": null
+  },
+  {
+   "key": "mobile",
+   "label": "Mobile linked to UAN",
+   "label_ml": "മൊബൈൽ",
+   "type": "phone",
+   "required": true,
+   "pattern": "^[0-9]{10}$",
+   "ask_ml": "യുഎഎൻ-ൽ ലിങ്ക് ചെയ്ത മൊബൈൽ?",
+   "source": null
+  },
+  {
+   "key": "claim_type",
+   "label": "Claim type",
+   "label_ml": "ക്ലെയിം തരം",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ഏത് തരം ക്ലെയിം?",
+   "source": null,
+   "options": [
+    "Final settlement (Form 19)",
+    "Advance (Form 31)",
+    "Pension withdrawal (Form 10C)"
+   ]
+  },
+  {
+   "key": "advance_purpose",
+   "label": "Purpose (advance)",
+   "label_ml": "ആവശ്യം",
+   "type": "select",
+   "required": false,
+   "pattern": null,
+   "ask_ml": "ഏത് ആവശ്യത്തിന്?",
+   "source": null,
+   "options": [
+    "Illness",
+    "Marriage",
+    "Education",
+    "House construction / purchase",
+    "Loan repayment",
+    "Natural calamity"
+   ]
+  },
+  {
+   "key": "amount_required",
+   "label": "Amount required (INR, advance)",
+   "label_ml": "ആവശ്യമായ തുക",
+   "type": "number",
+   "required": false,
+   "pattern": null,
+   "ask_ml": "എത്ര രൂപ?",
+   "source": null
+  },
+  {
+   "key": "last_employer",
+   "label": "Last employer / establishment",
+   "label_ml": "അവസാന തൊഴിലുടമ",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "അവസാനം ജോലി ചെയ്ത സ്ഥാപനം?",
+   "source": null
+  },
+  {
+   "key": "exit_date",
+   "label": "Date of exit",
+   "label_ml": "ജോലി വിട്ട തീയതി",
+   "type": "date",
+   "required": false,
+   "pattern": null,
+   "ask_ml": "ജോലി വിട്ട തീയതി?",
+   "source": null
+  },
+  {
+   "key": "bank_account",
+   "label": "Bank account number",
+   "label_ml": "ബാങ്ക് അക്കൗണ്ട് നമ്പർ",
+   "type": "account_number",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ബാങ്ക് അക്കൗണ്ട് നമ്പർ?",
+   "source": null
+  },
+  {
+   "key": "ifsc",
+   "label": "IFSC",
+   "label_ml": "ഐഎഫ്എസ്‌സി",
+   "type": "ifsc",
+   "required": true,
+   "pattern": "^[A-Z]{4}0[A-Z0-9]{6}$",
+   "ask_ml": "ഐഎഫ്എസ്‌സി കോഡ്?",
+   "source": null
+  },
+  {
+   "key": "aadhaar_last4",
+   "label": "Aadhaar last 4 digits",
+   "label_ml": "ആധാർ അവസാന 4 അക്കം",
+   "type": "text",
+   "required": false,
+   "pattern": "^[0-9]{4}$",
+   "ask_ml": "ആധാർ അവസാന 4 അക്കം?",
+   "source": null
+  }
+ ],
+ "documents": [
+  {
+   "kind": "cheque",
+   "label": "Cancelled cheque / passbook (name printed)",
+   "label_ml": "റദ്ദാക്കിയ ചെക്ക്",
+   "required": true
+  },
+  {
+   "kind": "uan_active",
+   "label": "UAN activated, Aadhaar + bank + mobile seeded (KYC)",
+   "label_ml": "യുഎഎൻ ആക്ടിവേറ്റ്",
+   "required": true
+  },
+  {
+   "kind": "exit_proof",
+   "label": "Date of exit updated by employer",
+   "label_ml": "ജോലി വിട്ട തീയതി രേഖ",
+   "required": true
+  },
+  {
+   "kind": "advance_proof",
+   "label": "Supporting proof (advance: medical / marriage invitation)",
+   "label_ml": "സഹായ രേഖ",
+   "required": false
+  }
+ ],
+ "fee": {
+  "amount_inr": 0
+ },
+ "active": true,
+ "notes": "PDF preparation sheet only. Citizen files on the EPFO member portal https://unifiedportal-mem.epfindia.gov.in/memberinterface/ (Online Services > Claim Form 31, 19, 10C) with their own UAN password/OTP. Source: https://www.epfindia.gov.in. No password or full Aadhaar is collected here."
+}

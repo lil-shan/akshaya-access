@@ -1,0 +1,211 @@
+{
+ "id": "pmfby_crop_loss",
+ "name": "PMFBY crop loss intimation (72-hour notice)",
+ "name_ml": "വിള നഷ്ട അറിയിപ്പ് (പിഎംഎഫ്ബിവൈ)",
+ "category": "agriculture",
+ "tier": 1,
+ "submission": "pdf",
+ "fields": [
+  {
+   "key": "farmer_name",
+   "label": "Farmer name",
+   "label_ml": "കർഷകന്റെ പേര്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "അപേക്ഷകന്റെ പേര് പറയാമോ?",
+   "source": "citizen.full_name"
+  },
+  {
+   "key": "mobile",
+   "label": "Mobile",
+   "label_ml": "മൊബൈൽ",
+   "type": "phone",
+   "required": true,
+   "pattern": "^[0-9]{10}$",
+   "ask_ml": "മൊബൈൽ നമ്പർ?",
+   "source": null
+  },
+  {
+   "key": "policy_number",
+   "label": "Policy / application number",
+   "label_ml": "പോളിസി നമ്പർ",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "പോളിസി / അപേക്ഷ നമ്പർ?",
+   "source": null
+  },
+  {
+   "key": "crop_name",
+   "label": "Crop",
+   "label_ml": "വിള",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ഏത് വിളയാണ്?",
+   "source": null
+  },
+  {
+   "key": "season",
+   "label": "Season",
+   "label_ml": "സീസൺ",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ഏത് സീസൺ?",
+   "source": null,
+   "options": [
+    "Kharif",
+    "Rabi"
+   ]
+  },
+  {
+   "key": "survey_number",
+   "label": "Survey / sub-division number",
+   "label_ml": "സർവേ നമ്പർ",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "സർവേ നമ്പർ?",
+   "source": null
+  },
+  {
+   "key": "village",
+   "label": "Village",
+   "label_ml": "വില്ലേജ്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "വില്ലേജ്?",
+   "source": null
+  },
+  {
+   "key": "district",
+   "label": "District",
+   "label_ml": "ജില്ല",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ഏത് ജില്ല?",
+   "source": null,
+   "options": [
+    "Thiruvananthapuram",
+    "Kollam",
+    "Pathanamthitta",
+    "Alappuzha",
+    "Kottayam",
+    "Idukki",
+    "Ernakulam",
+    "Thrissur",
+    "Palakkad",
+    "Malappuram",
+    "Kozhikode",
+    "Wayanad",
+    "Kannur",
+    "Kasaragod"
+   ]
+  },
+  {
+   "key": "area_hectare",
+   "label": "Insured area (hectare)",
+   "label_ml": "വിസ്തീർണം (ഹെക്ടർ)",
+   "type": "number",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "എത്ര ഹെക്ടർ?",
+   "source": null
+  },
+  {
+   "key": "cause_of_loss",
+   "label": "Cause of loss",
+   "label_ml": "നഷ്ടത്തിന്റെ കാരണം",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "എന്താണ് നഷ്ടത്തിന് കാരണം?",
+   "source": null,
+   "options": [
+    "Flood",
+    "Landslide",
+    "Heavy rain",
+    "Hailstorm",
+    "Cyclone",
+    "Inundation",
+    "Drought / dry spell",
+    "Pest / disease (localised)"
+   ]
+  },
+  {
+   "key": "loss_date",
+   "label": "Date of loss",
+   "label_ml": "നഷ്ടം സംഭവിച്ച തീയതി",
+   "type": "date",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ഏത് ദിവസമാണ് നഷ്ടം?",
+   "source": null
+  },
+  {
+   "key": "loss_percent",
+   "label": "Estimated loss (%)",
+   "label_ml": "നഷ്ടം (ശതമാനം)",
+   "type": "number",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ഏകദേശം എത്ര ശതമാനം നഷ്ടം?",
+   "source": null
+  },
+  {
+   "key": "bank_account",
+   "label": "Bank account number",
+   "label_ml": "ബാങ്ക് അക്കൗണ്ട് നമ്പർ",
+   "type": "account_number",
+   "required": false,
+   "pattern": null,
+   "ask_ml": "ബാങ്ക് അക്കൗണ്ട് നമ്പർ?",
+   "source": null
+  },
+  {
+   "key": "ifsc",
+   "label": "IFSC",
+   "label_ml": "ഐഎഫ്എസ്‌സി",
+   "type": "ifsc",
+   "required": false,
+   "pattern": "^[A-Z]{4}0[A-Z0-9]{6}$",
+   "ask_ml": "ഐഎഫ്എസ്‌സി കോഡ്?",
+   "source": null
+  }
+ ],
+ "documents": [
+  {
+   "kind": "policy_copy",
+   "label": "Policy / enrolment receipt",
+   "label_ml": "പോളിസി രസീത്",
+   "required": true
+  },
+  {
+   "kind": "loss_photos",
+   "label": "Photos of damaged crop (geo-tagged if possible)",
+   "label_ml": "നഷ്ടത്തിന്റെ ഫോട്ടോ",
+   "required": true
+  },
+  {
+   "kind": "land_record",
+   "label": "Land record / tax receipt",
+   "label_ml": "ഭൂമി രേഖ",
+   "required": true
+  },
+  {
+   "kind": "bank_passbook",
+   "label": "Bank passbook first page",
+   "label_ml": "ബാങ്ക് പാസ്ബുക്ക്",
+   "required": false
+  }
+ ],
+ "fee": {
+  "amount_inr": 0
+ },
+ "active": true,
+ "notes": "PDF sheet only; citizen must report on the official channel WITHIN 72 HOURS of the loss: Crop Insurance app, https://pmfby.gov.in (Farmer Corner / crop loss intimation), toll-free 14447, insurer or agriculture office. Source: https://pmfby.gov.in"
+}

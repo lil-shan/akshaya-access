@@ -52,7 +52,14 @@ PORTALS = {
     ]),
 }
 
-def load_fields(service): return json.loads((HERE / "portals" / service / "fields.json").read_text())
+PORTALS["voter_form8"] = dict(PORTALS["voter_form6"], pages=[  # same ECI login as Form 6; post-login steps [assumed]: dashboard card "Shifting of residence / correction of entries (Form 8)"
+    dict(p, detect="#form8-card", steps=[("click", "#form8-card")]) if p["id"] == "dashboard" else
+    dict(id="form8", detect="#form8-section", steps=[("fill", None), ("next", "#save-next")]) if p["id"] == "form6" else p
+    for p in PORTALS["voter_form6"]["pages"]])
+
+def load_fields(service):
+    d = HERE / "portals" / service
+    return json.loads((d / "fields.json").read_text()) if (d / "fields.json").exists() else json.loads((d / "service.json").read_text())["fields"]
 
 STRUCT_JS = """()=>{
  const vis=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length);

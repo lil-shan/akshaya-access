@@ -54,3 +54,68 @@ def fill(service_id, data, case_number="", job_id=""):
     for d in spec["docs"]: line("[ ]  " + d, 9.5)
     line(""); line(f"Source form: {spec['source']}", 8)
     c.save(); return buf.getvalue()
+
+
+# ---------------- v1.6 preparation sheets (labels/fields come from portals/<id>/service.json) ----------------
+import json
+from pathlib import Path
+from reportlab.lib.utils import simpleSplit
+_PORTALS = Path(__file__).parent / "portals"
+FOOTER = "Prepared by Akshaya-Access - citizen must submit on the official portal"
+SHEETS = {
+ "pmfby_crop_loss": {"title": "PMFBY - CROP LOSS INTIMATION SHEET", "official": "pmfby.gov.in / Crop Insurance app / toll-free 14447",
+   "banner": "DEADLINE: report the loss within 72 HOURS of the event (Crop Insurance app, 14447, insurer or agriculture office). Photos help.",
+   "sections": [("Farmer and policy", ["farmer_name", "mobile", "policy_number"]), ("Crop and land", ["crop_name", "season", "survey_number", "village", "district", "area_hectare"]),
+                ("Loss details", ["cause_of_loss", "loss_date", "loss_percent"]), ("Bank (for claim)", ["bank_account", "ifsc"])]},
+ "pan_form49a_prep": {"title": "PAN APPLICATION (FORM 49A) - DETAILS SHEET", "official": "Protean (NSDL) / UTIITSL / incometax.gov.in",
+   "sections": [("Applicant", ["full_name", "dob", "gender", "father_name", "mother_name", "applicant_status"]), ("Contact and address", ["address_line", "pincode", "mobile", "email"]),
+                ("Other", ["aadhaar_last4", "source_of_income", "area_code", "proof_identity"])]},
+ "passport_prep": {"title": "PASSPORT APPLICATION - DETAILS SHEET", "official": "passportindia.gov.in (Passport Seva)",
+   "sections": [("Applicant", ["given_name", "surname", "dob", "place_of_birth", "gender", "marital_status"]), ("Family", ["father_name", "mother_name", "spouse_name"]),
+                ("Contact and address", ["address_line", "pincode", "mobile", "email"]), ("Application", ["application_type", "booklet_pages", "scheme", "passport_office", "ecr_check"])],
+   "extra": ["Appointment: book the PSK slot on the portal and carry the receipt + originals of every document below."]},
+ "epf_withdrawal_prep": {"title": "EPF WITHDRAWAL (FORM 31 / 19 / 10C) - DETAILS SHEET", "official": "unifiedportal-mem.epfindia.gov.in (member portal)",
+   "sections": [("Member", ["member_name", "uan", "dob", "father_or_spouse", "mobile"]), ("Claim", ["claim_type", "advance_purpose", "amount_required", "last_employer", "exit_date"]),
+                ("Bank", ["bank_account", "ifsc", "aadhaar_last4"])],
+   "extra": ["Do not share your UAN password or OTP with anyone; log in yourself on the EPFO portal."]},
+}
+def load_service(sid): return json.loads((_PORTALS / sid / "service.json").read_text())
+
+def fill_sheet(service_id, data, case_number="", job_id=""):
+    """Clean A4 preparation sheet: sections of label/value rows, optional banner, document checklist, fixed footer. Dummy data only."""
+    spec, svc = SHEETS[service_id], load_service(service_id); labels = {f["key"]: f["label"] for f in svc["fields"]}
+    buf = io.BytesIO(); c = canvas.Canvas(buf, pagesize=A4); W, H = A4; y = [H - 20 * mm]
+    def foot():
+        c.setFont("Helvetica-Oblique", 8); c.drawString(18 * mm, 12 * mm, FOOTER + f"   |   Case {case_number}")
+    def room(n=8):
+        if y[0] < 25 * mm + n * mm: foot(); c.showPage(); y[0] = H - 20 * mm
+    def text(t, size=10, bold=False, indent=0, gap=5):
+        c.setFont("Helvetica-Bold" if bold else "Helvetica", size)
+        for ln in simpleSplit(t, "Helvetica-Bold" if bold else "Helvetica", size, W - 36 * mm - indent * mm):
+            room(); c.drawString((18 + indent) * mm, y[0], ln); y[0] -= gap * mm
+    text(spec["title"], 14, True, gap=7); text(f"Official channel: {spec['official']}", 9, gap=6)
+    text("GENERATED PREPARATION SHEET - DUMMY/TEST DATA - NOT SUBMITTED ANYWHERE", 8, gap=7)
+    if spec.get("banner"):
+        room(14); c.setFillGray(.9); c.rect(16 * mm, y[0] - 9 * mm, W - 32 * mm, 12 * mm, fill=1, stroke=0); c.setFillGray(0); y[0] -= 2 * mm
+        text(spec["banner"], 9.5, True, 1, 4.5); y[0] -= 5 * mm
+    known = set()
+    for name, keys in spec["sections"]:
+        room(20); text(name, 11, True, gap=6)
+        for k in keys:
+            known.add(k); v = str(data.get(k) or ""); text(f"{labels.get(k, k)}: {v if v else '______________________'}", 9.5, indent=3, gap=5)
+        y[0] -= 3 * mm
+    extra = [(k, str(v)) for k, v in data.items() if k not in known and not k.startswith("_") and k in labels]
+    if extra:
+        text("Additional details", 11, True, gap=6)
+        for k, v in extra: text(f"{labels[k]}: {v}", 9.5, indent=3)
+    for e in spec.get("extra", []): text(e, 9, gap=5)
+    room(30); y[0] -= 4 * mm; text("DOCUMENT CHECKLIST", 12, True, gap=7)
+    for d in svc["documents"]: text(("[ ]  " if d["required"] else "[ ]  (optional) ") + d["label"], 9.5, indent=3)
+    fee = svc.get("fee") or {}
+    if fee.get("note"): y[0] -= 2 * mm; text("Fee: " + fee["note"], 9)
+    y[0] -= 3 * mm; text("Next steps: log in yourself on the official portal above, enter these details, upload the documents and submit there.", 9)
+    text(f"Job {job_id}", 7); foot(); c.save(); return buf.getvalue()
+
+_fill_claim = fill
+def fill(service_id, data, case_number="", job_id=""):
+    return fill_sheet(service_id, data, case_number, job_id) if service_id in SHEETS else _fill_claim(service_id, data, case_number, job_id)

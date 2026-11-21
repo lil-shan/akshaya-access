@@ -1,0 +1,147 @@
+{
+ "id": "thuna_lost_property",
+ "name": "Lost property / document report (Kerala Police Thuna) - real portal dry run",
+ "name_ml": "നഷ്ടപ്പെട്ട വസ്തു / രേഖ റിപ്പോർട്ട് (തുണ)",
+ "category": "police",
+ "tier": 2,
+ "submission": "portal_dry_run",
+ "fields": [
+  {
+   "key": "lost_date_known",
+   "type": "select",
+   "label": "Is the lost date known? (yes/no)",
+   "ask_ml": "നഷ്ടപ്പെട്ട ദിവസം കൃത്യമായി അറിയാമോ?",
+   "source": "Thuna: Is lost date known?",
+   "options": [
+    "yes",
+    "no"
+   ],
+   "pattern": null,
+   "label_ml": "നഷ്ടപ്പെട്ട തീയതി അറിയാമോ",
+   "required": true
+  },
+  {
+   "key": "lost_date",
+   "type": "date",
+   "label": "Lost date (YYYY-MM-DD) or start of period",
+   "ask_ml": "ഏത് ദിവസമാണ് നഷ്ടപ്പെട്ടത്?",
+   "source": "Thuna: Lost Date / Lost Date From",
+   "pattern": "\\d{4}-\\d{2}-\\d{2}",
+   "label_ml": "നഷ്ടപ്പെട്ട തീയതി",
+   "required": true
+  },
+  {
+   "key": "lost_date_to",
+   "type": "date",
+   "label": "End of period (YYYY-MM-DD), if date unknown",
+   "ask_ml": "തീയതി ഉറപ്പില്ലെങ്കിൽ, ഏത് തീയതിക്കു മുമ്പാണ് നഷ്ടപ്പെട്ടത്?",
+   "source": "Thuna: Lost Date To",
+   "pattern": "\\d{4}-\\d{2}-\\d{2}",
+   "label_ml": "ഏത് തീയതി വരെ",
+   "required": false
+  },
+  {
+   "key": "lost_place",
+   "type": "text",
+   "label": "Place where it was lost",
+   "ask_ml": "എവിടെ വച്ചാണ് നഷ്ടപ്പെട്ടത്?",
+   "source": "Thuna: Lost Details [assumed]",
+   "pattern": null,
+   "label_ml": "നഷ്ടപ്പെട്ട സ്ഥലം",
+   "required": true
+  },
+  {
+   "key": "lost_description",
+   "type": "textarea",
+   "label": "Description of how it was lost",
+   "ask_ml": "എങ്ങനെയാണ് നഷ്ടപ്പെട്ടത്? ചുരുക്കി പറയാമോ?",
+   "source": "Thuna: Description of Lost",
+   "pattern": null,
+   "label_ml": "നഷ്ടപ്പെട്ട വിവരണം",
+   "required": true
+  },
+  {
+   "key": "property_category",
+   "type": "text",
+   "label": "Property category (e.g. Document, Mobile phone, Bank card)",
+   "ask_ml": "എന്താണ് നഷ്ടപ്പെട്ടത്? രേഖയോ ഫോണോ കാർഡോ?",
+   "source": "Thuna: Property Category",
+   "pattern": null,
+   "label_ml": "വസ്തുവിന്റെ വിഭാഗം",
+   "required": true
+  },
+  {
+   "key": "property_type",
+   "type": "text",
+   "label": "Property type (e.g. Driving licence, Smartphone)",
+   "ask_ml": "ഏത് തരം? ഉദാഹരണം: ഡ്രൈവിംഗ് ലൈസൻസ്, സ്മാർട്ട്ഫോൺ.",
+   "source": "Thuna: Property Type",
+   "pattern": null,
+   "label_ml": "വസ്തുവിന്റെ തരം",
+   "required": true
+  },
+  {
+   "key": "item_name",
+   "type": "text",
+   "label": "Item name",
+   "ask_ml": "വസ്തുവിന്റെ പേര് പറയാമോ?",
+   "source": "Thuna: Item Name",
+   "pattern": null,
+   "label_ml": "വസ്തുവിന്റെ പേര്",
+   "required": true
+  },
+  {
+   "key": "item_number",
+   "type": "text",
+   "label": "Document / item number (not Aadhaar)",
+   "ask_ml": "രേഖയുടെയോ വസ്തുവിന്റെയോ നമ്പർ അറിയാമോ? (ആധാർ നമ്പർ വേണ്ട)",
+   "source": "Thuna: Item Number",
+   "pattern": null,
+   "label_ml": "രേഖ / വസ്തു നമ്പർ",
+   "required": false
+  },
+  {
+   "key": "imei_no",
+   "type": "text",
+   "label": "IMEI number (mobile phones)",
+   "ask_ml": "ഫോൺ ആണെങ്കിൽ ഐഎംഇഐ നമ്പർ അറിയാമോ?",
+   "source": "Thuna: IMEI Number",
+   "pattern": "\\d{15}",
+   "label_ml": "ഐഎംഇഐ നമ്പർ",
+   "required": false
+  },
+  {
+   "key": "place_of_issue",
+   "type": "text",
+   "label": "Place of issue (documents)",
+   "ask_ml": "രേഖ നൽകിയ ഓഫീസ്/സ്ഥലം ഏതാണ്?",
+   "source": "Thuna: Place of Issue",
+   "pattern": null,
+   "label_ml": "നൽകിയ സ്ഥലം",
+   "required": false
+  },
+  {
+   "key": "date_of_issue",
+   "type": "date",
+   "label": "Date of issue (YYYY-MM-DD)",
+   "ask_ml": "രേഖ നൽകിയ തീയതി അറിയാമോ?",
+   "source": "Thuna: Date of Issue",
+   "pattern": "\\d{4}-\\d{2}-\\d{2}",
+   "label_ml": "നൽകിയ തീയതി",
+   "required": false
+  }
+ ],
+ "documents": [
+  {
+   "kind": "id_proof",
+   "label": "ID proof of the reporter",
+   "label_ml": "തിരിച്ചറിയൽ രേഖ",
+   "required": true
+  }
+ ],
+ "fee": {
+  "amount_inr": 0
+ },
+ "active": true,
+ "notes": "REAL portal dry run: stops before submit. Login mobile is requested at run time and never stored. Thuna: https://thuna.keralapolice.gov.in (public pages only)."
+}

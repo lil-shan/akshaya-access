@@ -1,0 +1,180 @@
+{
+ "id": "edistrict_relationship_certificate",
+ "name": "Relationship certificate (e-District, mock portal)",
+ "name_ml": "ബന്ധ സർട്ടിഫിക്കറ്റ് (ഇ-ഡിസ്ട്രിക്ട്)",
+ "category": "certificates",
+ "tier": 2,
+ "submission": "mock_portal",
+ "fields": [
+  {
+   "key": "applicant_name",
+   "label": "Applicant name",
+   "label_ml": "അപേക്ഷകന്റെ പേര്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "അപേക്ഷകന്റെ പേര് പറയാമോ?",
+   "source": "citizen.full_name"
+  },
+  {
+   "key": "dob",
+   "label": "Date of birth",
+   "label_ml": "ജനനത്തീയതി",
+   "type": "date",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ജനനത്തീയതി പറയാമോ?",
+   "source": "citizen.dob"
+  },
+  {
+   "key": "mobile",
+   "label": "Mobile number (portal login OTP)",
+   "label_ml": "മൊബൈൽ നമ്പർ",
+   "type": "phone",
+   "required": true,
+   "pattern": "^[0-9]{10}$",
+   "ask_ml": "OTP വരുന്ന മൊബൈൽ നമ്പർ പറയാമോ?",
+   "source": null
+  },
+  {
+   "key": "father_name",
+   "label": "Father / spouse name",
+   "label_ml": "പിതാവിന്റെ / ഭർത്താവിന്റെ പേര്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "അച്ഛന്റെ അല്ലെങ്കിൽ ഭർത്താവിന്റെ പേര് പറയാമോ?",
+   "source": null
+  },
+  {
+   "key": "address",
+   "label": "Address",
+   "label_ml": "വിലാസം",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "വിലാസം പറയാമോ?",
+   "source": "citizen.address"
+  },
+  {
+   "key": "relative_name",
+   "label": "Name of the related person",
+   "label_ml": "ബന്ധപ്പെട്ട വ്യക്തിയുടെ പേര്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ബന്ധപ്പെട്ട വ്യക്തിയുടെ പേര് പറയാമോ?",
+   "source": null
+  },
+  {
+   "key": "relationship",
+   "label": "Relationship",
+   "label_ml": "ബന്ധം",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "എന്താണ് ബന്ധം?",
+   "source": null,
+   "options": [
+    "Father",
+    "Mother",
+    "Spouse",
+    "Son",
+    "Daughter",
+    "Brother",
+    "Sister",
+    "Grandparent"
+   ]
+  },
+  {
+   "key": "relative_status",
+   "label": "Is the related person alive?",
+   "label_ml": "വ്യക്തി ജീവിച്ചിരിപ്പുണ്ടോ",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ആ വ്യക്തി ജീവിച്ചിരിപ്പുണ്ടോ?",
+   "source": null,
+   "options": [
+    "Alive",
+    "Deceased"
+   ]
+  },
+  {
+   "key": "village",
+   "label": "Village",
+   "label_ml": "വില്ലേജ്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "വില്ലേജ് ഏതാണ്?",
+   "source": null
+  },
+  {
+   "key": "taluk",
+   "label": "Taluk",
+   "label_ml": "താലൂക്ക്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "താലൂക്ക് ഏതാണ്?",
+   "source": null
+  },
+  {
+   "key": "district",
+   "label": "District",
+   "label_ml": "ജില്ല",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ഏത് ജില്ല?",
+   "source": null,
+   "options": [
+    "Thiruvananthapuram",
+    "Kollam",
+    "Pathanamthitta",
+    "Alappuzha",
+    "Kottayam",
+    "Idukki",
+    "Ernakulam",
+    "Thrissur",
+    "Palakkad",
+    "Malappuram",
+    "Kozhikode",
+    "Wayanad",
+    "Kannur",
+    "Kasaragod"
+   ]
+  },
+  {
+   "key": "purpose",
+   "label": "Purpose of certificate",
+   "label_ml": "സർട്ടിഫിക്കറ്റിന്റെ ആവശ്യം",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ഏത് ആവശ്യത്തിനാണ് സർട്ടിഫിക്കറ്റ്?",
+   "source": null
+  }
+ ],
+ "documents": [
+  {
+   "kind": "relative_proof",
+   "label": "Death certificate (if deceased) / ration card showing the relationship",
+   "label_ml": "ബന്ധം തെളിയിക്കുന്ന രേഖ",
+   "required": true
+  },
+  {
+   "kind": "applicant_id",
+   "label": "Applicant ID proof (Aadhaar / voter ID)",
+   "label_ml": "തിരിച്ചറിയൽ രേഖ",
+   "required": true
+  }
+ ],
+ "fee": {
+  "amount_inr": 0,
+  "note": "Akshaya service charge may apply"
+ },
+ "active": true,
+ "notes": "Real service: https://edistrict.kerala.gov.in. Fields follow the Revenue certificate application (applicant, parents, address, purpose, village/taluk, supporting documents). Automation runs the local MOCK portal only; nothing is submitted. Fee: Akshaya service charge may apply, verify locally."
+}

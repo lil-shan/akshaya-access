@@ -1,0 +1,46 @@
+{
+ "id": "kwa_water_bill",
+ "name": "Kerala Water Authority bill payment",
+ "name_ml": "ജല അതോറിറ്റി ബിൽ അടയ്ക്കൽ",
+ "category": "bills",
+ "tier": 3,
+ "submission": "api",
+ "fields": [
+  {
+   "key": "consumer_number",
+   "label": "KWA consumer number",
+   "label_ml": "കൺസ്യൂമർ നമ്പർ",
+   "type": "number",
+   "required": true,
+   "pattern": "^[0-9]{6,13}$",
+   "ask_ml": "വാട്ടർ അതോറിറ്റി കൺസ്യൂമർ നമ്പർ പറയാമോ?",
+   "source": null
+  },
+  {
+   "key": "payer_mobile",
+   "label": "Payer mobile",
+   "label_ml": "മൊബൈൽ നമ്പർ",
+   "type": "phone",
+   "required": true,
+   "pattern": "^[0-9]{10}$",
+   "ask_ml": "മൊബൈൽ നമ്പർ പറയാമോ?",
+   "source": null
+  },
+  {
+   "key": "confirm_amount",
+   "label": "Amount confirmed by citizen",
+   "label_ml": "തുക സ്ഥിരീകരിച്ചു",
+   "type": "yesno",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ബിൽ തുക ശരിയാണോ? അടയ്ക്കട്ടെ?",
+   "source": null
+  }
+ ],
+ "documents": [],
+ "fee": {
+  "convenience_inr": 0
+ },
+ "active": true,
+ "notes": "Eko BBPS sandbox/mock, operator Kerala Water Authority (env EKO_KWA_OPERATOR_ID). Bill fetch and payment are SIMULATED. KWA consumer-number length is [assumed] 6-13 digits. Reference: https://www.kwa.kerala.gov.in , https://developers.eko.in"
+}

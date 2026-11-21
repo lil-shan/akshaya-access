@@ -9,10 +9,26 @@ import tts
 from PIL import Image, ImageDraw, ImageFont
 
 D = os.path.dirname(os.path.abspath(__file__))
-FIELDS = json.load(open(os.path.join(D, "fields.json")))
-S = {"otp": None, "cap": None, "ok_otp": False, "ok_cap": False, "data": {}, "submitted": False}
+# kind -> (service id whose service.json defines the form, portal title, form title). Form fields = that service.json minus the login "mobile".
+KINDS = {"income": ("edistrict_income_certificate", "MOCK e-District Kerala (test portal)", "Income certificate application"),
+         "nativity": ("edistrict_nativity_certificate", "MOCK e-District Kerala (test portal)", "Nativity certificate application"),
+         "residence": ("edistrict_residence_certificate", "MOCK e-District Kerala (test portal)", "Residence certificate application"),
+         "community": ("edistrict_community_certificate", "MOCK e-District Kerala (test portal)", "Community certificate application"),
+         "relationship": ("edistrict_relationship_certificate", "MOCK e-District Kerala (test portal)", "Relationship certificate application"),
+         "birth": ("ksmart_birth_certificate", "MOCK K-SMART (test portal)", "Birth registration / certificate application"),
+         "ration": ("ration_card_add_member", "MOCK Civil Supplies e-citizen (test portal)", "Ration card: add member")}
+def form_fields(kind):
+    sid = KINDS[kind][0]
+    return [f for f in json.load(open(os.path.join(D, "../../portals", sid, "service.json")))["fields"] if f["key"] != "mobile"]
+S = {"kind": "income", "otp": None, "cap": None, "ok_otp": False, "ok_cap": False, "data": {}, "submitted": False}
 DTMF = {"1": (697, 1209), "2": (697, 1336), "3": (697, 1477), "4": (770, 1209), "5": (770, 1336),
         "6": (770, 1477), "7": (852, 1209), "8": (852, 1336), "9": (852, 1477), "0": (941, 1336)}
+
+def pick_code():
+    """Prefer an already-cached Sarvam-spoken code (no TTS credits). MOCK_TTS_FRESH=1 -> random code (may call Sarvam once)."""
+    cached = [f[3:-4] for f in os.listdir(tts.CACHE) if f.startswith("en-") and f.endswith(".wav")] if tts.CACHE.exists() else []
+    if cached and not os.environ.get("MOCK_TTS_FRESH"): return random.choice(cached)
+    return "".join(random.choices("0123456789", k=5))
 
 def audio(code, lang="en"):
     """Spoken digits via Sarvam Bulbul (cached, see tts.py); fallback when no key/call fails: a distinct two-tone (DTMF) beep per digit."""
@@ -35,7 +51,7 @@ def image(code):
     b = io.BytesIO(); im.save(b, "PNG"); return b.getvalue()
 
 def page(title, body):
-    return f"<!doctype html><html><head><meta charset=utf-8><title>{title}</title></head><body><h2>MOCK e-District Kerala (test portal)</h2><h3>{title}</h3>{body}</body></html>".encode()
+    return f"<!doctype html><html><head><meta charset=utf-8><title>{title}</title></head><body><h2>{KINDS[S['kind']][1]}</h2><h3>{title}</h3>{body}</body></html>".encode()
 
 def field_html(f):
     k = f["key"]; req = " required" if f.get("required") else ""
@@ -52,21 +68,22 @@ class H(BaseHTTPRequestHandler):
     def send(self, body, ct="text/html", code=200):
         self.send_response(code); self.send_header("Content-Type", ct); self.end_headers(); self.wfile.write(body)
     def do_GET(self):
-        p = self.path.split("?")[0]
+        p = self.path.split("?")[0]; qs = parse_qs(self.path.partition("?")[2])
+        if p == "/": S["kind"] = qs.get("kind", ["income"])[0] if qs.get("kind", ["income"])[0] in KINDS else "income"
         if p == "/": S.update(otp=None, cap=None, ok_otp=False, ok_cap=False, data={}, submitted=False)
         if p == "/":
             self.send(page("Login", "<form method=post action=/send-otp><label>Mobile number <input name=mobile id=mobile pattern='[0-9]{10}' required></label><button id=send-otp>Send OTP</button></form>"))
         elif p == "/otp":
             self.send(page("Enter OTP", "<form method=post action=/verify-otp><label>OTP <input name=otp id=otp required></label><button id=verify-otp>Verify</button></form>"))
         elif p == "/captcha":
-            S["cap"] = "".join(random.choices("0123456789", k=5))
+            S["cap"] = pick_code()
             open(os.path.join(D, "captcha_answer.txt"), "w").write(S["cap"])  # test-only hook
             self.send(page("Captcha", "<form method=post action=/verify-captcha><img id=captcha-image src=/captcha.png alt=captcha><p><audio id=captcha-audio controls src=/captcha.wav></audio> <a id=captcha-audio-link href=/captcha.wav>Listen (audio captcha)</a> <a id=captcha-audio-ml href=/captcha-ml.wav>Malayalam</a></p><label>Captcha <input name=captcha id=captcha required></label><button id=verify-captcha>Continue</button></form>"))
         elif p == "/captcha.png": self.send(image(S["cap"] or "00000"), "image/png")
         elif p == "/captcha.wav": self.send(audio(S["cap"] or "00000"), "audio/wav")
         elif p == "/captcha-ml.wav": self.send(audio(S["cap"] or "00000", "ml"), "audio/wav")
         elif p == "/form" and S["ok_cap"]:
-            self.send(page("Income certificate application", "<form method=post action=/review-post>" + "".join(map(field_html, FIELDS)) + "<button id=to-review>Save and review</button></form>"))
+            self.send(page(KINDS[S["kind"]][2], "<form method=post action=/review-post>" + "".join(map(field_html, form_fields(S["kind"]))) + "<button id=to-review>Save and review</button></form>"))
         elif p == "/review" and S["ok_cap"]:
             rows = "".join(f"<tr><td>{html.escape(k)}</td><td>{html.escape(v)}</td></tr>" for k, v in S["data"].items())
             self.send(page("Review", f"<table border=1 id=review-table>{rows}</table><form method=post action=/submit><button id=final-submit>Submit application</button></form>"))

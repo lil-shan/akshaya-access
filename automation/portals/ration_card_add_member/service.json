@@ -1,0 +1,130 @@
+{
+ "id": "ration_card_add_member",
+ "name": "Ration card: add a member (civil supplies, mock portal)",
+ "name_ml": "റേഷൻ കാർഡിൽ അംഗത്തെ ചേർക്കൽ",
+ "category": "identity",
+ "tier": 2,
+ "submission": "mock_portal",
+ "fields": [
+  {
+   "key": "mobile",
+   "label": "Mobile number (portal login OTP)",
+   "label_ml": "മൊബൈൽ നമ്പർ",
+   "type": "phone",
+   "required": true,
+   "pattern": "^[0-9]{10}$",
+   "ask_ml": "OTP വരുന്ന മൊബൈൽ നമ്പർ പറയാമോ?",
+   "source": null
+  },
+  {
+   "key": "ration_card_no",
+   "label": "Ration card number (10 digits)",
+   "label_ml": "റേഷൻ കാർഡ് നമ്പർ",
+   "type": "number",
+   "required": true,
+   "pattern": "^[0-9]{10}$",
+   "ask_ml": "റേഷൻ കാർഡ് നമ്പർ പറയാമോ?",
+   "source": null
+  },
+  {
+   "key": "head_name",
+   "label": "Card head's name",
+   "label_ml": "കാർഡ് ഉടമയുടെ പേര്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "കാർഡ് ഉടമയുടെ പേര്?",
+   "source": null
+  },
+  {
+   "key": "member_name",
+   "label": "New member's name",
+   "label_ml": "പുതിയ അംഗത്തിന്റെ പേര്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ചേർക്കേണ്ട അംഗത്തിന്റെ പേര്?",
+   "source": null
+  },
+  {
+   "key": "member_dob",
+   "label": "New member's date of birth",
+   "label_ml": "ജനനത്തീയതി",
+   "type": "date",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "അംഗത്തിന്റെ ജനനത്തീയതി?",
+   "source": null
+  },
+  {
+   "key": "member_relation",
+   "label": "Relation to card head",
+   "label_ml": "കാർഡ് ഉടമയുമായുള്ള ബന്ധം",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "കാർഡ് ഉടമയുമായുള്ള ബന്ധം എന്താണ്?",
+   "source": null,
+   "options": [
+    "Spouse",
+    "Son",
+    "Daughter",
+    "Father",
+    "Mother",
+    "Daughter-in-law",
+    "Other"
+   ]
+  },
+  {
+   "key": "member_gender",
+   "label": "Gender",
+   "label_ml": "ലിംഗം",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ആണോ പെണ്ണോ?",
+   "source": null,
+   "options": [
+    "Male",
+    "Female",
+    "Other"
+   ]
+  },
+  {
+   "key": "member_aadhaar_last4",
+   "label": "Aadhaar last 4 digits (optional)",
+   "label_ml": "ആധാർ അവസാന 4 അക്കം",
+   "type": "text",
+   "required": false,
+   "pattern": "^[0-9]{4}$",
+   "ask_ml": "ആധാറിന്റെ അവസാന നാല് അക്കം പറയാമോ?",
+   "source": null
+  }
+ ],
+ "documents": [
+  {
+   "kind": "birth_or_marriage",
+   "label": "Birth certificate (child) / marriage certificate (spouse)",
+   "label_ml": "ജനന / വിവാഹ സർട്ടിഫിക്കറ്റ്",
+   "required": true
+  },
+  {
+   "kind": "member_id",
+   "label": "Member's Aadhaar / ID",
+   "label_ml": "അംഗത്തിന്റെ തിരിച്ചറിയൽ രേഖ",
+   "required": true
+  },
+  {
+   "kind": "removal_proof",
+   "label": "Name-deletion proof from previous card (if moved)",
+   "label_ml": "മുൻ കാർഡിൽ നിന്ന് ഒഴിവാക്കിയ രേഖ",
+   "required": false
+  }
+ ],
+ "fee": {
+  "amount_inr": 0,
+  "note": "Verify with the taluk supply office"
+ },
+ "active": true,
+ "notes": "Real service: Kerala Civil Supplies https://civilsupplieskerala.gov.in / https://ecitizen.civilsupplieskerala.gov.in (add member to ration card). Automation runs a civil-supplies-STYLE local MOCK only; nothing is submitted. Only the last 4 Aadhaar digits are ever stored."
+}

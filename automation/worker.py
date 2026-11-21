@@ -109,12 +109,16 @@ def run_digilocker(db, job, case):
     db.event(case["id"], "digilocker_fetched", f"Fetched {len(docs)} documents ({source}, sandbox/dummy data)", {"paths": [d["path"] for d in docs]})
     return {"documents": docs, "source": source, "summary": f"Fetched {len(docs)} DigiLocker documents ({source})."}
 
-def run_bbps_fetch(db, job, case):
+BILLERS = {"kseb_bill_payment": "KSEB", "kwa_water_bill": "Kerala Water Authority"}
+def run_bbps_fetch(db, job, case, svc=None):
     import payments
-    d = case.get("data") or {}; bad = [k for k, pat in (("consumer_number", r"[0-9]{13}"), ("payer_mobile", r"[0-9]{10}")) if not re.fullmatch(pat, str(d.get(k) or ""))]
+    d = case.get("data") or {}; sid = case.get("service_id") or (svc or {}).get("id")
+    pats = {f["key"]: (f.get("pattern") or "").strip("^$") for f in (svc or {}).get("fields") or [] if f["key"] in ("consumer_number", "payer_mobile")}
+    pats = {"consumer_number": r"[0-9]{13}", "payer_mobile": r"[0-9]{10}", **{k: v for k, v in pats.items() if v}}
+    bad = [k for k, pat in pats.items() if not re.fullmatch(pat, str(d.get(k) or ""))]
     if bad: raise JobError("missing_fields: " + ",".join(bad))
     eko = payments.Eko(); mock = None if eko.live else payments.start_eko_mock(eko.base)
-    try: bill = eko.fetch_bill(str(d["consumer_number"]), str(d["payer_mobile"]))
+    try: bill = eko.fetch_bill(str(d["consumer_number"]), str(d["payer_mobile"]), sid)
     finally:
         payments.stop_eko_mock(mock)
     db.merge_case_data(case["id"], {"_bill": bill}); db.event(case["id"], "bill_fetched", f"Bill fetched via {bill['provider']}: Rs {bill['amount_inr']} due {bill['due_date']}", {"amount_inr": bill["amount_inr"]})
@@ -145,7 +149,7 @@ def run_payment_collect(db, job, case, poll=None, timeout=900):
         url, status = uri, lambda: db.payment_status(pid)
     else:
         rz = payments.Razorpay(); label = rz.label
-        link = rz.create_link(amt, f"case-{case.get('case_number')}", f"KSEB bill payment Rs {amt} (test mode)")
+        link = rz.create_link(amt, f"case-{case.get('case_number')}", f"{BILLERS.get(case.get('service_id'), 'Utility')} bill payment Rs {amt} (test mode)")
         pid = db.add_payment({"case_id": case["id"], "provider": "razorpay_test", "amount_inr": amt, "status": "pending", "reference": link["id"]})
         db.set_job(job["id"], result={"short_url": link["short_url"], "payment_provider": label, "amount_inr": amt})
         db.event(case["id"], "payment_link", f"Payment link created ({label}) for Rs {amt}; citizen pays in their own UPI app", {"short_url": link["short_url"]})
@@ -160,7 +164,7 @@ def run_payment_collect(db, job, case, poll=None, timeout=900):
     else: db.set_payment(pid, status="failed"); raise JobError("payment_timeout")
     db.set_payment(pid, status="confirmed"); db.event(case["id"], "payment_confirmed", f"Payment confirmed ({label})")
     eko = payments.Eko(); mock = None if eko.live else payments.start_eko_mock(eko.base)
-    try: pay = eko.pay_bill(str(d["consumer_number"]), str(d["payer_mobile"]), amt, bill)
+    try: pay = eko.pay_bill(str(d["consumer_number"]), str(d["payer_mobile"]), amt, bill, case.get("service_id"))
     except Exception as e: db.event(case["id"], "bill_pay_failed", "Payment taken but bill-pay failed; needs manual refund/retry"); raise JobError(f"bill_pay_failed_after_payment:{e}"[:200])
     finally:
         payments.stop_eko_mock(mock)
@@ -183,6 +187,9 @@ def mock_url():
     except OSError:
         proc = subprocess.Popen([sys.executable, str(HERE / "mock_portals/edistrict/server.py"), str(port)]); time.sleep(1); return url, proc
 
+MOCK_KINDS = {"edistrict_income_certificate": "income", "edistrict_nativity_certificate": "nativity", "edistrict_residence_certificate": "residence",
+              "edistrict_community_certificate": "community", "edistrict_relationship_certificate": "relationship",
+              "ksmart_birth_certificate": "birth", "ration_card_add_member": "ration"}
 def run_mock(db, job, case, svc):
     from playwright.sync_api import sync_playwright
     url, proc = mock_url(); shots = []; cid = case["id"]; base = f"{cid}/{job['id']}"
@@ -193,9 +200,9 @@ def run_mock(db, job, case, svc):
     try:
         with sync_playwright() as pw:
             b = pw.chromium.launch(headless=True); pg = b.new_page()
-            pg.goto(url + "/"); pg.fill("#mobile", str(data.get("mobile") or "9000000000"))
+            kind = MOCK_KINDS.get(svc["id"], "income"); pg.goto(url + "/?kind=" + kind); pg.fill("#mobile", str(data.get("mobile") or "9000000000"))
             pg.click("#send-otp"); db.event(cid, "step", "Mobile number entered, OTP requested from mock portal"); shot(pg, "01-otp-page")
-            _, otp = ask(db, job, [("otp", "The e-District (mock) portal sent an OTP by SMS to your phone. Please read it out.", None)])
+            _, otp = ask(db, job, [("otp", "The mock portal sent an OTP by SMS to your phone. Please read it out.", None)])
             pg.fill("#otp", otp); otp = None; pg.click("#verify-otp"); pg.wait_for_load_state()
             if "/captcha" not in pg.url: raise RuntimeError("portal rejected the OTP")
             db.event(cid, "step", "OTP accepted"); shot(pg, "02-captcha-page")
@@ -219,7 +226,7 @@ def run_mock(db, job, case, svc):
             b.close()
     finally:
         if proc: proc.terminate()
-    return {"screenshots": shots, "output_pdf": None, "stopped_before_submit": True, "summary": "Mock e-District income certificate filled; stopped at review page."}
+    return {"screenshots": shots, "output_pdf": None, "stopped_before_submit": True, "summary": f"Mock portal ({svc['id']}) filled; stopped at review page. Nothing submitted."}
 
 def run_portal_dry(db, job, case, svc):
     """Real-portal dry run (contract v1.2): needs consent 'portal_dry_run' and job mode 'dry_run'. Never submits. See dry_run.py."""
@@ -251,7 +258,7 @@ def process(db, job):
             db.set_job(job["id"], status="failed", error=err, finished_at=now()); db.set_case(case["id"], "draft")
             db.event(case["id"], "job_failed", f"Job failed: {err}"); return
         if job["kind"] == "digilocker_fetch": res = run_digilocker(db, job, case)
-        elif job["kind"] == "bbps_fetch": res = run_bbps_fetch(db, job, case)
+        elif job["kind"] == "bbps_fetch": res = run_bbps_fetch(db, job, case, svc)
         elif job["kind"] == "payment_collect": res = run_payment_collect(db, job, case)
         elif sub == "pdf": res = run_pdf(db, job, case, svc)
         elif sub == "mock_portal": res = run_mock(db, job, case, svc)

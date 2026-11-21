@@ -1,0 +1,206 @@
+{
+ "id": "pan_form49a_prep",
+ "name": "PAN application (Form 49A) preparation sheet",
+ "name_ml": "പാൻ അപേക്ഷ (ഫോം 49എ) തയ്യാറാക്കൽ",
+ "category": "identity",
+ "tier": 1,
+ "submission": "pdf",
+ "fields": [
+  {
+   "key": "full_name",
+   "label": "Full name (as on proof)",
+   "label_ml": "പൂർണ്ണ നാമം",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "പേര് പൂർണ്ണമായി പറയാമോ?",
+   "source": "citizen.full_name"
+  },
+  {
+   "key": "dob",
+   "label": "Date of birth",
+   "label_ml": "ജനനത്തീയതി",
+   "type": "date",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ജനനത്തീയതി പറയാമോ?",
+   "source": "citizen.dob"
+  },
+  {
+   "key": "gender",
+   "label": "Gender",
+   "label_ml": "ലിംഗം",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ആണോ പെണ്ണോ?",
+   "source": null,
+   "options": [
+    "Male",
+    "Female",
+    "Transgender"
+   ]
+  },
+  {
+   "key": "father_name",
+   "label": "Father's name",
+   "label_ml": "പിതാവിന്റെ പേര്",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "അച്ഛന്റെ പേര്?",
+   "source": null
+  },
+  {
+   "key": "mother_name",
+   "label": "Mother's name",
+   "label_ml": "മാതാവിന്റെ പേര്",
+   "type": "text",
+   "required": false,
+   "pattern": null,
+   "ask_ml": "അമ്മയുടെ പേര്?",
+   "source": null
+  },
+  {
+   "key": "applicant_status",
+   "label": "Applicant status",
+   "label_ml": "അപേക്ഷകന്റെ സ്ഥിതി",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "വ്യക്തിയാണോ?",
+   "source": null,
+   "options": [
+    "Individual",
+    "HUF",
+    "Firm",
+    "Company"
+   ]
+  },
+  {
+   "key": "address_line",
+   "label": "Residence address",
+   "label_ml": "വിലാസം",
+   "type": "text",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "വിലാസം?",
+   "source": "citizen.address"
+  },
+  {
+   "key": "pincode",
+   "label": "PIN code",
+   "label_ml": "പിൻ കോഡ്",
+   "type": "text",
+   "required": true,
+   "pattern": "^[0-9]{6}$",
+   "ask_ml": "പിൻ കോഡ്?",
+   "source": null
+  },
+  {
+   "key": "mobile",
+   "label": "Mobile",
+   "label_ml": "മൊബൈൽ",
+   "type": "phone",
+   "required": true,
+   "pattern": "^[0-9]{10}$",
+   "ask_ml": "മൊബൈൽ നമ്പർ?",
+   "source": null
+  },
+  {
+   "key": "email",
+   "label": "Email",
+   "label_ml": "ഇമെയിൽ",
+   "type": "text",
+   "required": false,
+   "pattern": null,
+   "ask_ml": "ഇമെയിൽ?",
+   "source": null
+  },
+  {
+   "key": "aadhaar_last4",
+   "label": "Aadhaar last 4 digits",
+   "label_ml": "ആധാർ അവസാന 4 അക്കം",
+   "type": "text",
+   "required": false,
+   "pattern": "^[0-9]{4}$",
+   "ask_ml": "ആധാറിന്റെ അവസാന നാല് അക്കം?",
+   "source": null
+  },
+  {
+   "key": "source_of_income",
+   "label": "Source of income",
+   "label_ml": "വരുമാന മാർഗം",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "വരുമാന മാർഗം?",
+   "source": null,
+   "options": [
+    "Salary",
+    "Business / profession",
+    "Capital gains",
+    "Other sources",
+    "No income"
+   ]
+  },
+  {
+   "key": "area_code",
+   "label": "AO area code / jurisdiction (if known)",
+   "label_ml": "എഒ ഏരിയ കോഡ്",
+   "type": "text",
+   "required": false,
+   "pattern": null,
+   "ask_ml": "ഏരിയ കോഡ് അറിയാമോ?",
+   "source": null
+  },
+  {
+   "key": "proof_identity",
+   "label": "Proof of identity to submit",
+   "label_ml": "തിരിച്ചറിയൽ രേഖ",
+   "type": "select",
+   "required": true,
+   "pattern": null,
+   "ask_ml": "ഏത് തിരിച്ചറിയൽ രേഖ?",
+   "source": null,
+   "options": [
+    "Aadhaar",
+    "Voter ID",
+    "Passport",
+    "Driving licence"
+   ]
+  }
+ ],
+ "documents": [
+  {
+   "kind": "id_proof",
+   "label": "Proof of identity",
+   "label_ml": "തിരിച്ചറിയൽ രേഖ",
+   "required": true
+  },
+  {
+   "kind": "address_proof",
+   "label": "Proof of address",
+   "label_ml": "വിലാസ രേഖ",
+   "required": true
+  },
+  {
+   "kind": "dob_proof",
+   "label": "Proof of date of birth",
+   "label_ml": "ജനനത്തീയതി രേഖ",
+   "required": true
+  },
+  {
+   "kind": "photo",
+   "label": "Passport photo (3.5 x 2.5 cm)",
+   "label_ml": "ഫോട്ടോ",
+   "required": true
+  }
+ ],
+ "fee": {
+  "amount_inr": 107,
+  "note": "Approx Rs 107 (Indian address, incl. GST); Rs 1017 for foreign address. Verify on the portal."
+ },
+ "active": true,
+ "notes": "PDF preparation sheet only. Citizen applies on Protean https://www.onlineservices.nsdl.com/paam/endUserRegisterContact.html or UTIITSL https://www.pan.utiitsl.com or the Income Tax portal (instant e-PAN via Aadhaar OTP). Fields follow Form 49A (https://www.incometax.gov.in). No full Aadhaar number is collected."
+}

@@ -44,19 +44,20 @@ class Eko:
     def _common(self, mobile, client_ref):
         return {"initiator_id": env("EKO_INITIATOR_ID") or "9962981729", "user_code": env("EKO_USER_CODE") or "20810200",
                 "client_ref_id": client_ref, "source_ip": "127.0.0.1", "confirmation_mobile_no": mobile, "sender_name": "Akshaya Access"}
-    def operator_id(self):
+    def operator_id(self, service_id=None):
+        if service_id == "kwa_water_bill": return env("EKO_KWA_OPERATOR_ID") or "KWA-OPERATOR-ID-UNSET"   # water category; find via find_operator("water")
         return env("EKO_KSEB_OPERATOR_ID") or "KSEB-OPERATOR-ID-UNSET"   # find via GET /customer/payment/bbps/operators (name ~ Kerala State Electricity)
     def find_operator(self, needle="kerala"):
         r = requests.get(self.base + "/customer/payment/bbps/operators", headers=self._h(), params={"category": 8}, timeout=30).json()
         return [o for o in (r.get("param_attributes") or {}).get("list_elements", []) if needle in o.get("name", "").lower()]
-    def fetch_bill(self, consumer_no, mobile):
+    def fetch_bill(self, consumer_no, mobile, service_id=None):
         ref = uuid.uuid4().hex[:20]
-        p = dict(self._common(mobile, ref), utility_acc_no=consumer_no, operator_id=self.operator_id())
+        p = dict(self._common(mobile, ref), utility_acc_no=consumer_no, operator_id=self.operator_id(service_id))
         r = requests.get(self.base + "/customer/payment/bbps/bill", headers=self._h(), params=p, timeout=30).json()
         return parse_bill(r, ref, self.label)
-    def pay_bill(self, consumer_no, mobile, amount_inr, bill):
+    def pay_bill(self, consumer_no, mobile, amount_inr, bill, service_id=None):
         ref = uuid.uuid4().hex[:20]
-        body = dict(self._common(mobile, ref), phone_operator_code=self.operator_id(), utility_acc_no=consumer_no, amount=int(amount_inr),
+        body = dict(self._common(mobile, ref), phone_operator_code=self.operator_id(service_id), utility_acc_no=consumer_no, amount=int(amount_inr),
                     utilitycustomername=bill.get("customer_name", ""), category=8, communication=0)
         r = requests.post(self.base + "/customer/payment/bbps", headers=dict(self._h(), **{"Content-Type": "application/x-www-form-urlencoded"}),
                           data=urlencode(body), timeout=60).json()

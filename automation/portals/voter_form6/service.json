@@ -1,0 +1,247 @@
+{
+ "id": "voter_form6",
+ "name": "New voter registration (ECI Form 6) - real portal dry run",
+ "name_ml": "പുതിയ വോട്ടർ രജിസ്ട്രേഷൻ (ഫോം 6)",
+ "category": "elections",
+ "tier": 2,
+ "submission": "portal_dry_run",
+ "fields": [
+  {
+   "key": "state",
+   "type": "text",
+   "label": "State/UT",
+   "ask_ml": "ഏത് സംസ്ഥാനത്താണ് താമസിക്കുന്നത്?",
+   "source": "Form 6 constituency",
+   "pattern": null,
+   "label_ml": "സംസ്ഥാനം",
+   "required": true
+  },
+  {
+   "key": "district",
+   "type": "text",
+   "label": "District",
+   "ask_ml": "ഏത് ജില്ലയിലാണ് താമസം?",
+   "source": "Form 6 constituency / item 8",
+   "pattern": null,
+   "label_ml": "ജില്ല",
+   "required": true
+  },
+  {
+   "key": "assembly_constituency",
+   "type": "text",
+   "label": "Assembly constituency (name or number)",
+   "ask_ml": "നിയമസഭാ മണ്ഡലത്തിന്റെ പേര് പറയാമോ?",
+   "source": "Form 6 header",
+   "pattern": null,
+   "label_ml": "നിയമസഭാ മണ്ഡലം",
+   "required": true
+  },
+  {
+   "key": "first_name_en",
+   "type": "text",
+   "label": "First (and middle) name, English",
+   "ask_ml": "പേര് ഇംഗ്ലീഷ് അക്ഷരങ്ങളിൽ പറയാമോ?",
+   "source": "Form 6 item 1(b)",
+   "pattern": null,
+   "label_ml": "പേര് (ഇംഗ്ലീഷ്)",
+   "required": true
+  },
+  {
+   "key": "surname_en",
+   "type": "text",
+   "label": "Surname, English",
+   "ask_ml": "വീട്ടുപേര് ഉണ്ടെങ്കിൽ പറയാമോ?",
+   "source": "Form 6 item 1(b)",
+   "pattern": null,
+   "label_ml": "വീട്ടുപേര് / സർനെയിം",
+   "required": false
+  },
+  {
+   "key": "relative_relation",
+   "type": "select",
+   "label": "Relative type (father/mother/husband/wife/guardian)",
+   "ask_ml": "അച്ഛൻ, അമ്മ, ഭർത്താവ്, ഭാര്യ — ആരുടെ പേരാണ് നൽകേണ്ടത്?",
+   "source": "Form 6 item 2(a)",
+   "options": [
+    "Father",
+    "Mother",
+    "Husband",
+    "Wife",
+    "Legal Guardian"
+   ],
+   "pattern": null,
+   "label_ml": "ബന്ധുവിന്റെ ബന്ധം",
+   "required": true
+  },
+  {
+   "key": "relative_name_en",
+   "type": "text",
+   "label": "Relative name, English",
+   "ask_ml": "ആ ബന്ധുവിന്റെ മുഴുവൻ പേര് പറയാമോ?",
+   "source": "Form 6 item 2(b)",
+   "pattern": null,
+   "label_ml": "ബന്ധുവിന്റെ പേര്",
+   "required": true
+  },
+  {
+   "key": "email",
+   "type": "email",
+   "label": "Email (optional)",
+   "ask_ml": "ഇമെയിൽ വിലാസം ഉണ്ടോ?",
+   "source": "Form 6 item 4",
+   "pattern": "[^@\\s]+@[^@\\s]+\\.[^@\\s]+",
+   "label_ml": "ഇമെയിൽ",
+   "required": false
+  },
+  {
+   "key": "gender",
+   "type": "select",
+   "label": "Gender",
+   "ask_ml": "ആണോ പെണ്ണോ മൂന്നാം ലിംഗമോ?",
+   "source": "Form 6 item 6",
+   "options": [
+    "Male",
+    "Female",
+    "Third Gender"
+   ],
+   "pattern": null,
+   "label_ml": "ലിംഗം",
+   "required": true
+  },
+  {
+   "key": "dob",
+   "type": "date",
+   "label": "Date of birth (YYYY-MM-DD)",
+   "ask_ml": "ജനന തീയതി പറയാമോ?",
+   "source": "Form 6 item 7(a)",
+   "pattern": "\\d{4}-\\d{2}-\\d{2}",
+   "label_ml": "ജനന തീയതി",
+   "required": true
+  },
+  {
+   "key": "address_house",
+   "type": "text",
+   "label": "House / building no.",
+   "ask_ml": "വീട്ടുനമ്പറോ വീട്ടുപേരോ പറയാമോ?",
+   "source": "Form 6 item 8(a)",
+   "pattern": null,
+   "label_ml": "വീട്ടുനമ്പർ / പേര്",
+   "required": true
+  },
+  {
+   "key": "address_street",
+   "type": "text",
+   "label": "Street / area / locality",
+   "ask_ml": "സ്ഥലത്തിന്റെ പേര് പറയാമോ?",
+   "source": "Form 6 item 8(a)",
+   "pattern": null,
+   "label_ml": "സ്ഥലം / തെരുവ്",
+   "required": true
+  },
+  {
+   "key": "address_town",
+   "type": "text",
+   "label": "Town / village",
+   "ask_ml": "ഏത് ടൗൺ അല്ലെങ്കിൽ ഗ്രാമം?",
+   "source": "Form 6 item 8(a)",
+   "pattern": null,
+   "label_ml": "പട്ടണം / ഗ്രാമം",
+   "required": true
+  },
+  {
+   "key": "address_post_office",
+   "type": "text",
+   "label": "Post office",
+   "ask_ml": "പോസ്റ്റ് ഓഫീസ് ഏതാണ്?",
+   "source": "Form 6 item 8(a)",
+   "pattern": null,
+   "label_ml": "പോസ്റ്റ് ഓഫീസ്",
+   "required": true
+  },
+  {
+   "key": "address_pincode",
+   "type": "text",
+   "label": "PIN code",
+   "ask_ml": "പിൻകോഡ് പറയാമോ?",
+   "source": "Form 6 item 8(a)",
+   "pattern": "\\d{6}",
+   "label_ml": "പിൻകോഡ്",
+   "required": true
+  },
+  {
+   "key": "address_taluk",
+   "type": "text",
+   "label": "Tehsil / taluk",
+   "ask_ml": "താലൂക്ക് ഏതാണ്?",
+   "source": "Form 6 item 8(a)",
+   "pattern": null,
+   "label_ml": "താലൂക്ക്",
+   "required": true
+  },
+  {
+   "key": "residing_since",
+   "type": "text",
+   "label": "Ordinarily resident at this address since (YYYY-MM)",
+   "ask_ml": "എത്ര മാസം/വർഷം മുതൽ ഈ വിലാസത്തിലാണ് താമസം?",
+   "source": "Declaration (ii)",
+   "pattern": "\\d{4}-\\d{2}",
+   "label_ml": "ഈ വിലാസത്തിൽ താമസിക്കുന്നത് മുതൽ",
+   "required": true
+  },
+  {
+   "key": "birth_place_town",
+   "type": "text",
+   "label": "Place of birth: village/town",
+   "ask_ml": "ജനിച്ച സ്ഥലം ഏതാണ്?",
+   "source": "Declaration (i)",
+   "pattern": null,
+   "label_ml": "ജനന സ്ഥലം",
+   "required": true
+  },
+  {
+   "key": "birth_place_district",
+   "type": "text",
+   "label": "Place of birth: district",
+   "ask_ml": "ജനിച്ച ജില്ല ഏതാണ്?",
+   "source": "Declaration (i)",
+   "pattern": null,
+   "label_ml": "ജനന ജില്ല",
+   "required": true
+  },
+  {
+   "key": "birth_place_state",
+   "type": "text",
+   "label": "Place of birth: state/UT",
+   "ask_ml": "ജനിച്ച സംസ്ഥാനം ഏതാണ്?",
+   "source": "Declaration (i)",
+   "pattern": null,
+   "label_ml": "ജനന സംസ്ഥാനം",
+   "required": true
+  }
+ ],
+ "documents": [
+  {
+   "kind": "photo",
+   "label": "Passport-size photo",
+   "label_ml": "ഫോട്ടോ",
+   "required": true
+  },
+  {
+   "kind": "age_proof",
+   "label": "Age proof (birth certificate / SSLC)",
+   "label_ml": "പ്രായം തെളിയിക്കുന്ന രേഖ",
+   "required": true
+  },
+  {
+   "kind": "address_proof",
+   "label": "Address proof (Aadhaar / ration card)",
+   "label_ml": "വിലാസ രേഖ",
+   "required": true
+  }
+ ],
+ "fee": {
+  "amount_inr": 0
+ },
+ "active": true,
+ "notes": "REAL portal dry run: stops before submit. Login mobile is requested at run time and never stored. Form 6: https://voters.eci.gov.in (public pages only)."
+}
