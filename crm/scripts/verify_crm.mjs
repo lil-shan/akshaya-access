@@ -51,6 +51,9 @@ try {
   const pp = await admin.from("job_prompts").insert({ job_id: dj.data?.id, kind: "password", prompt_text: "Thuna password", status: "open", expires_at: new Date(Date.now() + 120000).toISOString() }).select("id").single();
   const pa = await sb.from("job_prompts").update({ answer: "verify-pw", status: "answered", answered_at: new Date().toISOString() }).eq("id", pp.data?.id).eq("status", "open").select("status").single();
   ok("answer password prompt", !pp.error && pa.data?.status === "answered", pp.error?.message ?? pa.error?.message);
+  const up1 = await admin.from("payments").insert({ case_id: caseId, provider: "upi_qr_demo", amount_inr: 100, status: "pending" }).select("id").single();
+  const up2 = await sb.from("payments").update({ status: "confirmed" }).eq("id", up1.data?.id).eq("status", "pending").select("status").single();
+  ok("mark upi_qr_demo payment confirmed", !up1.error && up2.data?.status === "confirmed", up1.error?.message ?? up2.error?.message);
   shot = `${caseId}/${dj.data?.id}/verify.png`;
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
   const sup = await admin.storage.from("case-files").upload(shot, png, { contentType: "image/png" });

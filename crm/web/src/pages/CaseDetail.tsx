@@ -194,6 +194,10 @@ export default function CaseDetail({ id }: { id: string }) {
     await supabase.from("case_events").insert({ case_id: id, actor: "crm_user", type: "bbps_fetch_queued", message: "Bill fetch (sandbox) queued" });
     setMsg("Saved. Bill fetch queued.");
   }
+  async function setPay(pid: string, status: "confirmed" | "failed") {
+    const { error } = await supabase.from("payments").update({ status }).eq("id", pid).eq("status", "pending");
+    if (error) setMsg(error.message); else { await supabase.from("case_events").insert({ case_id: id, actor: "crm_user", type: "payment_marked", message: `Demo payment marked ${status}` }); loadRest(); }
+  }
   async function collectPayment() {
     const amt = (c!.data as unknown as { _bill?: Bill })._bill?.amount_inr;
     if (!payOk || amt == null) return;
@@ -230,7 +234,7 @@ export default function CaseDetail({ id }: { id: string }) {
         <input type="file" accept="application/pdf,image/jpeg,image/png" onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ""; }} />
       </div>
       {c.service_id === "kseb_bill_payment" && (() => { const bill = (c.data as unknown as { _bill?: Bill })._bill;
-        const pj = jobs.find((j) => j.kind === "payment_collect"); const short = (pj?.result as unknown as { short_url?: string; eko_reference?: string; bill_pay_reference?: string } | null)?.short_url;
+        const pj = jobs.find((j) => j.kind === "payment_collect"); const upi = (pj?.result as unknown as { upi_uri?: string } | null)?.upi_uri; const short = (pj?.result as unknown as { short_url?: string; upi_uri?: string; eko_reference?: string; bill_pay_reference?: string } | null)?.short_url;
         const ref = (pj?.result as unknown as Record<string, unknown> | null) ?? {}; const eko = (ref.eko_reference ?? ref.bill_pay_reference ?? ref.eko_ref) as string | undefined;
         return <div className="card"><h2>KSEB bill payment</h2>
           <button onClick={fetchBill}>Fetch bill</button>
@@ -238,6 +242,8 @@ export default function CaseDetail({ id }: { id: string }) {
             <div><button onClick={() => setPayOpen(true)}>Collect payment</button></div></div>}
           {pays.map((p) => <div key={p.id} style={{ marginTop: 8 }}>Payment ₹{p.amount_inr} ({p.provider}) · <b className={p.status === "failed" ? "err" : p.status === "confirmed" ? "ok" : ""}>{p.status}</b>
             {p.status === "pending" && short && p === pays[0] && <div><a href={short} target="_blank" rel="noreferrer">{short}</a><div><Qr text={short} /></div><small>The citizen pays in their own UPI app. We never ask for a UPI PIN.</small></div>}
+            {p.provider === "upi_qr_demo" && upi && p.status === "pending" && p === pays[0] && <div><p className="err"><b>DEMO ONLY — pays the team's own UPI ID. Never use with real citizens.</b></p><Qr text={upi} /><div><a href={upi}>Open in UPI app</a></div></div>}
+            {p.provider === "upi_qr_demo" && p.status === "pending" && <div><button onClick={() => setPay(p.id, "confirmed")}>Mark received (demo)</button><button className="sec" onClick={() => setPay(p.id, "failed")}>Mark failed</button></div>}
             {p.status === "confirmed" && eko && <div><small>Eko bill-pay reference: {eko}</small></div>}</div>)}
         </div>; })()}
       {payOpen && (() => { const amt = (c.data as unknown as { _bill?: Bill })._bill?.amount_inr;
