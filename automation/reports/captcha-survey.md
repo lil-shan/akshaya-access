@@ -1,26 +1,25 @@
-# Captcha survey (2026-11-21)
+# Captcha survey (2026-11-21, round 2)
 
-Headless Chromium, public landing/login pages only, nothing clicked or entered. Detection is a keyword scan of the DOM and visible text of the landing page, so **most entries are UNCERTAIN**: many portals show the login form only after a click (not done), or load it late. Screenshots in `reports/captcha/`. Script: `scripts/captcha_survey.py`.
+Method: headless Chromium (desktop Chrome UA), read-only. Open landing page, click ONE visible navigation link by text (Login / Sign In / Register / Apply), then scan that page's DOM. Nothing typed, no OTP or submit pressed. Script: `scripts/captcha_survey2.py`; raw rows `reports/captcha-survey2.json`; screenshots `reports/captcha/<portal>-login.png` (and round-1 `<portal>.png`).
+Caveat: detection is a DOM keyword scan. "audio option present" means the words audio/listen/speak appear on the page, NOT that an audio challenge was heard. Marked `(verify)` where that is the only evidence.
 
-| Portal | URL | Reachable | Captcha seen | Login method visible |
+| Portal | Page reached | Captcha | Login method | Phone-relayable? |
 |---|---|---|---|---|
-| edistrict-kerala | https://edistrict.kerala.gov.in/ | yes (HTTP 200) | none visible | none visible |
-| ksmart | https://ksmart.lsgkerala.gov.in/ui/web-portal | yes (HTTP 200) | none visible | none visible |
-| kseb-quickpay | https://wss.kseb.in/selfservices/quickpay | yes (HTTP 200) | image (captcha text/element in DOM) | none visible |
-| kwa-epay | https://epay.kwa.kerala.gov.in/ | yes (HTTP 200) | reCAPTCHA, audio option? | none visible |
-| civil-supplies-ecitizen | https://ecitizen.civilsupplieskerala.gov.in/ | yes (HTTP 200) | none visible | none visible |
-| voters-eci | https://voters.eci.gov.in/login | yes (HTTP 200) | image (captcha text/element in DOM) | none visible |
-| pan-protean | https://www.protean-tinpan.com/ | yes (HTTP 200) | reCAPTCHA | Aadhaar OTP |
-| pan-incometax-epan | https://eportal.incometax.gov.in/iec/foservices/#/pre-login/instant-e-pan | no: Page.goto: Timeout 45000ms exceeded. | n/a | n/a |
-| passport-seva | https://services1.passportindia.gov.in/forms/ | yes (HTTP 200) | reCAPTCHA | none visible |
-| epfo-member | https://unifiedportal-mem.epfindia.gov.in/memberinterface/ | yes (HTTP 500) | none visible | none visible |
-| kerala-police-thuna | https://thuna.keralapolice.gov.in/ | yes (HTTP 200) | image (captcha text/element in DOM) | none visible |
+| edistrict-kerala | edportalsignin.jsp (Sign In) | image, no audio seen | username/password (OTP not shown) | whatsapp |
+| ksmart | landing (Register click stayed on SPA page) | none seen; login not reached | not reached | unknown (SPA, needs manual look) |
+| kseb-quickpay | quickpay + complaint page | image, no audio seen | none (anonymous payment/complaint) | whatsapp |
+| kwa-epay | /register | reCAPTCHA (+ standard audio challenge) | phone registration | no |
+| civil-supplies-ecitizen | landing, no nav link matched | none seen; login not reached | not reached | unknown |
+| voters-eci | /login | image + audio option present (verify) | mobile OTP | yes (verify) |
+| pan-protean | landing: reCAPTCHA; TIN-FC login page: none | reCAPTCHA on public PAN pages | Aadhaar (landing), username/password (TIN-FC) | no |
+| pan-incometax-epan | eportal.incometax.gov.in login (URL fixed: start at www.incometax.gov.in/iec/foportal/) | none on first step (captcha may appear after user ID, not tested) | PAN/Aadhaar user ID then password | unknown (likely yes) |
+| passport-seva | /forms/PreLogin | reCAPTCHA | none shown pre-login | no |
+| epfo-member | /memberinterface/ (URL fixed: base domain; earlier 500 was the wrong path) | image + audio option present (verify) | UAN + password, Aadhaar-linked | yes (verify) |
+| kerala-police-thuna | landing login | image + audio option present (verify) | mobile OTP and username/password | yes (verify) |
 
-## Notes
-
-- `none visible` means not found on the landing page, NOT that the login has no captcha. Real login pages for e-District, K-SMART, civil supplies, EPFO, Thuna are behind a click or tab. UNCERTAIN.
-- `image (captcha text/element in DOM)`: the word 'captcha' appears with no reCAPTCHA/hCaptcha marker; assumed a text-image captcha. UNCERTAIN, verify from the screenshot.
-- `audio option?`: a 'listen' or 'audio' word appeared near captcha text; for reCAPTCHA it is the standard audio challenge (which Google often withholds from automated browsers). UNCERTAIN.
-- Incometax e-PAN (eportal.incometax.gov.in) timed out headless (heavy SPA / bot filtering). EPFO member returned HTTP 500 at this URL. Passport Seva, PAN and others: login method detection is weak (landing pages).
-- First-pass URLs for K-SMART, KSEB, Protean and Passport were wrong (DNS failure / 404) and were corrected in the final run.
-- Takeaway for the product: assume an image captcha everywhere, reCAPTCHA on KWA, Protean and Passport Seva (cannot be relayed as an image to the citizen; portal is 'later'), and OTP on most. Re-survey by hand before building any dry-run.
+## Takeaways
+- reCAPTCHA (KWA, Protean, Passport Seva): not relayable, keep as later / manual.
+- Image captcha with no audio found (e-District, KSEB): relay the image over WhatsApp, not voice.
+- Voters portal, EPFO, Thuna appear to offer audio captchas, but this must be confirmed by hand before building a voice relay.
+- K-SMART, civil supplies, Income Tax e-PAN: the real challenge appears after navigation or typing, which this read-only survey cannot do. Check manually.
+- Fixed URLs: EPFO (base domain, then Sign in), e-PAN (income tax home, then Login; the direct pre-login SPA URL times out). Login links on EPFO/Thuna/Voters stayed on the same URL (modals/SPA).

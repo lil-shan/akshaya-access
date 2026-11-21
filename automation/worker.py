@@ -8,6 +8,7 @@ PROMPT_TTL = 180  # seconds (contract: 3 min)
 WORKER = f"worker-{os.getpid()}"
 
 class InputTimeout(Exception): pass
+class JobError(Exception): pass  # error string is stored verbatim (e.g. missing_consent:digilocker)
 def now(): return dt.datetime.now(dt.timezone.utc).isoformat()
 
 def load_env():
@@ -37,6 +38,8 @@ class Db:
     def set_prompt(self, pid, **kw): self.c.table("job_prompts").update(kw).eq("id", pid).execute()
     def upload(self, path, data, ctype):
         self.c.storage.from_(BUCKET).upload(path, data, {"content-type": ctype, "upsert": "true"})
+    def has_consent(self, case_id, kind): return bool(self.c.table("consents").select("id").eq("case_id", case_id).eq("kind", kind).limit(1).execute().data)
+    def get_citizen(self, cid): return self.c.table("citizens").select("*").eq("id", cid).single().execute().data
     def add_document(self, case_id, kind, path, source):
         self.c.table("documents").insert({"case_id": case_id, "kind": kind, "storage_path": path, "source": source}).execute()
 
@@ -62,6 +65,26 @@ def ask(db, job, kinds, timeout=PROMPT_TTL, poll=1.0):
         time.sleep(poll)
     for pid in ids: db.set_prompt(pid, status="expired")
     raise InputTimeout("citizen_input_timeout")
+
+def missing_fields(fields, data):
+    """Contract v1.1: keys (never values) of required fields that are empty, plus fields whose value fails `pattern`."""
+    import re
+    bad = []
+    for f in fields or []:
+        v = data.get(f["key"]); empty = v is None or str(v).strip() == ""
+        if empty and f.get("required"): bad.append(f["key"])
+        elif not empty and f.get("pattern") and not re.fullmatch(f["pattern"], str(v)): bad.append(f["key"])
+    return bad
+
+def run_digilocker(db, job, case):
+    import digilocker_sim
+    if not db.has_consent(case["id"], "digilocker"): raise JobError("missing_consent:digilocker")
+    cit = db.get_citizen(case["citizen_id"]); docs = []
+    for kind, name, data in digilocker_sim.fetch(cit.get("full_name") or "Dummy Citizen", str(cit.get("dob") or "")):
+        path = f"{case['id']}/{job['id']}/{name}"
+        db.upload(path, data, "application/pdf"); db.add_document(case["id"], kind, path, "digilocker"); docs.append({"kind": kind, "path": path})
+    db.event(case["id"], "digilocker_fetched", f"Fetched {len(docs)} documents (SIMULATED_DIGILOCKER, dummy data)", {"paths": [d["path"] for d in docs]})
+    return {"documents": docs, "source": "SIMULATED_DIGILOCKER", "summary": f"Fetched {len(docs)} dummy DigiLocker documents (simulated)."}
 
 def run_pdf(db, job, case, svc):
     import pdf_filler
@@ -118,17 +141,23 @@ def run_mock(db, job, case, svc):
 
 def process(db, job):
     case = db.get_case(job["case_id"]); svc = db.get_service(case["service_id"])
-    sub = svc["submission"]; db.set_case(case["id"], "running"); db.event(case["id"], "job_started", f"Job {job['kind']} ({sub}) started")
+    sub = svc["submission"]; prior = case["status"]; db.set_case(case["id"], "running"); db.event(case["id"], "job_started", f"Job {job['kind']} ({sub}) started")
     try:
-        if sub == "pdf": res = run_pdf(db, job, case, svc)
+        bad = [] if job["kind"] == "digilocker_fetch" else missing_fields(svc.get("fields"), case.get("data") or {})
+        if bad:
+            err = "missing_fields: " + ",".join(bad)
+            db.set_job(job["id"], status="failed", error=err, finished_at=now()); db.set_case(case["id"], "draft")
+            db.event(case["id"], "job_failed", f"Job failed: {err}"); return
+        if job["kind"] == "digilocker_fetch": res = run_digilocker(db, job, case)
+        elif sub == "pdf": res = run_pdf(db, job, case, svc)
         elif sub == "mock_portal": res = run_mock(db, job, case, svc)
         elif sub == "portal_dry_run": raise RuntimeError("portal_dry_run is not implemented yet")
         else: raise RuntimeError(f"unsupported submission {sub}")
     except Exception as e:
-        err = "citizen_input_timeout" if isinstance(e, InputTimeout) else f"{type(e).__name__}: {e}"[:300]
+        err = "citizen_input_timeout" if isinstance(e, InputTimeout) else str(e) if isinstance(e, JobError) else f"{type(e).__name__}: {e}"[:300]
         db.set_job(job["id"], status="failed", error=err, finished_at=now()); db.set_case(case["id"], "failed")
         db.event(case["id"], "job_failed", f"Job failed: {err}"); return
-    db.set_job(job["id"], status="succeeded", result=res, finished_at=now()); db.set_case(case["id"], "done")
+    db.set_job(job["id"], status="succeeded", result=res, finished_at=now()); db.set_case(case["id"], prior if job["kind"] == "digilocker_fetch" else "done")
     db.event(case["id"], "job_succeeded", res["summary"])
 
 def loop(db, once=False):
@@ -136,7 +165,7 @@ def loop(db, once=False):
         for job in db.queued_jobs():
             try: svc = db.get_service(db.get_case(job["case_id"])["service_id"])
             except Exception: continue
-            if svc["submission"] == "api": continue
+            if svc["submission"] == "api" and job["kind"] != "digilocker_fetch": continue
             if db.claim(job["id"]): process(db, job)
         if once: return
         time.sleep(2)

@@ -1,0 +1,246 @@
+[
+ {
+  "portal": "edistrict-kerala",
+  "url": "https://edistrict.kerala.gov.in/",
+  "clicked": "Sign In",
+  "status": 200,
+  "landing": [
+   [
+    "none"
+   ],
+   [
+    "none seen"
+   ]
+  ],
+  "final_url": "https://edistrict.kerala.gov.in/edportalsignin.jsp?lang=en",
+  "captcha": [
+   "image"
+  ],
+  "login": [
+   "username/password"
+  ]
+ },
+ {
+  "portal": "ksmart",
+  "url": "https://ksmart.lsgkerala.gov.in/ui/web-portal",
+  "clicked": "Register",
+  "status": 200,
+  "landing": [
+   [
+    "none"
+   ],
+   [
+    "none seen"
+   ]
+  ],
+  "final_url": "https://ksmart.lsgkerala.gov.in/ui/web-portal",
+  "captcha": [
+   "none"
+  ],
+  "login": [
+   "none seen"
+  ]
+ },
+ {
+  "portal": "kseb-quickpay",
+  "url": "https://wss.kseb.in/selfservices/quickpay",
+  "clicked": "REGISTER COMPLAINT/SERVICE",
+  "status": 200,
+  "landing": [
+   [
+    "image"
+   ],
+   [
+    "none seen"
+   ]
+  ],
+  "final_url": "https://wss.kseb.in/selfservices/showAnonymousComplaint.do",
+  "captcha": [
+   "image"
+  ],
+  "login": [
+   "none seen"
+  ]
+ },
+ {
+  "portal": "kwa-epay",
+  "url": "https://epay.kwa.kerala.gov.in/",
+  "clicked": "Register/Change Phone",
+  "status": 200,
+  "landing": [
+   [
+    "reCAPTCHA",
+    "audio option present"
+   ],
+   [
+    "none seen"
+   ]
+  ],
+  "final_url": "https://epay.kwa.kerala.gov.in/register",
+  "captcha": [
+   "reCAPTCHA",
+   "audio option present"
+  ],
+  "login": [
+   "none seen"
+  ]
+ },
+ {
+  "portal": "civil-supplies-ecitizen",
+  "url": "https://ecitizen.civilsupplieskerala.gov.in/",
+  "clicked": null,
+  "status": 200,
+  "landing": [
+   [
+    "none"
+   ],
+   [
+    "none seen"
+   ]
+  ],
+  "final_url": "https://ecitizen.civilsupplieskerala.gov.in/",
+  "captcha": [
+   "none"
+  ],
+  "login": [
+   "none seen"
+  ]
+ },
+ {
+  "portal": "voters-eci",
+  "url": "https://voters.eci.gov.in/login",
+  "clicked": "Login",
+  "status": 200,
+  "landing": [
+   [
+    "image",
+    "audio option present"
+   ],
+   [
+    "mobile OTP"
+   ]
+  ],
+  "final_url": "https://voters.eci.gov.in/login",
+  "captcha": [
+   "image",
+   "audio option present"
+  ],
+  "login": [
+   "mobile OTP"
+  ]
+ },
+ {
+  "portal": "pan-protean",
+  "url": "https://www.protean-tinpan.com/",
+  "clicked": "Login as TIN-FC",
+  "status": 200,
+  "landing": [
+   [
+    "reCAPTCHA"
+   ],
+   [
+    "Aadhaar"
+   ]
+  ],
+  "final_url": "https://onlineservices.tin.egov.proteantech.in/TIN/JSP/security/Login.jsp",
+  "captcha": [
+   "none"
+  ],
+  "login": [
+   "username/password"
+  ]
+ },
+ {
+  "portal": "pan-incometax-epan",
+  "url": "https://www.incometax.gov.in/iec/foportal/",
+  "clicked": "Login",
+  "status": 200,
+  "landing": [
+   [
+    "none"
+   ],
+   [
+    "Aadhaar"
+   ]
+  ],
+  "final_url": "https://eportal.incometax.gov.in/iec/foservices/#/login",
+  "captcha": [
+   "none"
+  ],
+  "login": [
+   "Aadhaar",
+   "username/password"
+  ]
+ },
+ {
+  "portal": "passport-seva",
+  "url": "https://services1.passportindia.gov.in/forms/",
+  "clicked": null,
+  "status": 200,
+  "landing": [
+   [
+    "reCAPTCHA"
+   ],
+   [
+    "none seen"
+   ]
+  ],
+  "final_url": "https://services1.passportindia.gov.in/forms/PreLogin",
+  "captcha": [
+   "reCAPTCHA"
+  ],
+  "login": [
+   "none seen"
+  ]
+ },
+ {
+  "portal": "epfo-member",
+  "url": "https://unifiedportal-mem.epfindia.gov.in/",
+  "clicked": "Sign in",
+  "status": 200,
+  "landing": [
+   [
+    "image",
+    "audio option present"
+   ],
+   [
+    "Aadhaar",
+    "username/password"
+   ]
+  ],
+  "click_error": "ElementHandle.click: Timeout 8000ms exceeded.",
+  "final_url": "https://unifiedportal-mem.epfindia.gov.in/memberinterface/",
+  "captcha": [
+   "image",
+   "audio option present"
+  ],
+  "login": [
+   "Aadhaar",
+   "username/password"
+  ]
+ },
+ {
+  "portal": "kerala-police-thuna",
+  "url": "https://thuna.keralapolice.gov.in/",
+  "clicked": "Login",
+  "status": 200,
+  "landing": [
+   [
+    "image",
+    "audio option present"
+   ],
+   [
+    "none seen"
+   ]
+  ],
+  "final_url": "https://thuna.keralapolice.gov.in/",
+  "captcha": [
+   "image",
+   "audio option present"
+  ],
+  "login": [
+   "mobile OTP",
+   "username/password"
+  ]
+ }
+]

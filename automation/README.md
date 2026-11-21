@@ -7,6 +7,7 @@ Rules: never submit on a real portal, never auto-solve a captcha, OTP/captcha va
 ```
 python3.12 -m venv .venv && .venv/bin/pip install playwright supabase reportlab pypdf pillow pytest
 ```
+Spoken captcha: `tts.py` (Sarvam Bulbul, cached in mock_portals/edistrict/tts_cache, beep fallback). DigiLocker: `digilocker_sim.py` (SIMULATED_DIGILOCKER). E2E: `scripts/e2e_all.py`.
 Chromium comes from `~/.cache/ms-playwright`. Credentials: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` are read from
 `automation/.env` or `../.cloud.env` (see `.env.example`). Optional `MOCK_URL` (default `http://127.0.0.1:8765`).
 

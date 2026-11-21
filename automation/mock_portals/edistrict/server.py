@@ -4,6 +4,8 @@ Test hooks: sms.log (the 'SMS' with OTP), captcha_answer.txt (known answer, test
 import io, json, math, os, random, struct, wave, html, sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..'))
+import tts
 from PIL import Image, ImageDraw, ImageFont
 
 D = os.path.dirname(os.path.abspath(__file__))
@@ -12,8 +14,10 @@ S = {"otp": None, "cap": None, "ok_otp": False, "ok_cap": False, "data": {}, "su
 DTMF = {"1": (697, 1209), "2": (697, 1336), "3": (697, 1477), "4": (770, 1209), "5": (770, 1336),
         "6": (770, 1477), "7": (852, 1209), "8": (852, 1336), "9": (852, 1477), "0": (941, 1336)}
 
-def audio(code):
-    """LIMITATION: no TTS installed, so each digit is a distinct two-tone (DTMF) beep, not speech."""
+def audio(code, lang="en"):
+    """Spoken digits via Sarvam Bulbul (cached, see tts.py); fallback when no key/call fails: a distinct two-tone (DTMF) beep per digit."""
+    spoken = tts.speak_digits(code, lang)
+    if spoken: return spoken
     buf, rate = io.BytesIO(), 8000
     w = wave.open(buf, "wb"); w.setnchannels(1); w.setsampwidth(2); w.setframerate(rate)
     for ch in code:
@@ -57,9 +61,10 @@ class H(BaseHTTPRequestHandler):
         elif p == "/captcha":
             S["cap"] = "".join(random.choices("0123456789", k=5))
             open(os.path.join(D, "captcha_answer.txt"), "w").write(S["cap"])  # test-only hook
-            self.send(page("Captcha", "<form method=post action=/verify-captcha><img id=captcha-image src=/captcha.png alt=captcha><p><audio id=captcha-audio controls src=/captcha.wav></audio> <a id=captcha-audio-link href=/captcha.wav>Listen (audio captcha)</a></p><label>Captcha <input name=captcha id=captcha required></label><button id=verify-captcha>Continue</button></form>"))
+            self.send(page("Captcha", "<form method=post action=/verify-captcha><img id=captcha-image src=/captcha.png alt=captcha><p><audio id=captcha-audio controls src=/captcha.wav></audio> <a id=captcha-audio-link href=/captcha.wav>Listen (audio captcha)</a> <a id=captcha-audio-ml href=/captcha-ml.wav>Malayalam</a></p><label>Captcha <input name=captcha id=captcha required></label><button id=verify-captcha>Continue</button></form>"))
         elif p == "/captcha.png": self.send(image(S["cap"] or "00000"), "image/png")
         elif p == "/captcha.wav": self.send(audio(S["cap"] or "00000"), "audio/wav")
+        elif p == "/captcha-ml.wav": self.send(audio(S["cap"] or "00000", "ml"), "audio/wav")
         elif p == "/form" and S["ok_cap"]:
             self.send(page("Income certificate application", "<form method=post action=/review-post>" + "".join(map(field_html, FIELDS)) + "<button id=to-review>Save and review</button></form>"))
         elif p == "/review" and S["ok_cap"]:

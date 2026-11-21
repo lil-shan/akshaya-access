@@ -41,3 +41,31 @@ def test_timeout():
     with pytest.raises(worker.InputTimeout, match="citizen_input_timeout"):
         worker.ask(db, JOB, [("otp", "x", None)], timeout=.2, poll=.05)
     assert db.prompts["0"]["status"] == "expired"
+
+FIELDS = [{"key": "a", "required": True, "pattern": None}, {"key": "ifsc", "required": False, "pattern": "[A-Z]{4}0[A-Z0-9]{6}"},
+          {"key": "b", "required": True, "pattern": "[0-9]{10}"}]
+
+def test_missing_fields_reports_keys_only():
+    assert worker.missing_fields(FIELDS, {"a": "x", "b": "9000000000"}) == []
+    bad = worker.missing_fields(FIELDS, {"a": " ", "ifsc": "bad", "b": "SECRET12"})
+    assert bad == ["a", "ifsc", "b"]
+
+class ProcDb(FakeDb):
+    def __init__(self, fields, data, consent=True, kind="portal_fill"):
+        super().__init__(); self.fields, self.data, self.consent = fields, data, consent
+    def get_case(self, cid): return {"id": "c1", "service_id": "s", "status": "ready", "data": self.data, "citizen_id": "z"}
+    def get_service(self, sid): return {"id": "s", "submission": "pdf", "fields": self.fields}
+    def has_consent(self, cid, kind): return self.consent
+    def get_citizen(self, cid): return {"full_name": "E2E Dummy", "dob": "1980-01-01"}
+    def upload(self, *a): pass
+    def add_document(self, *a): pass
+
+def test_process_fails_on_missing_fields_before_any_work():
+    db = ProcDb(FIELDS, {"b": "SECRET12"}); worker.process(db, {"id": "j", "case_id": "c1", "kind": "fill_pdf"})
+    assert db.job[-1]["error"] == "missing_fields: a,b" and db.case[-1] == "draft" and "SECRET12" not in json.dumps(db.events)
+
+def test_digilocker_requires_consent_and_returns_docs():
+    db = ProcDb(None, {}, consent=False); worker.process(db, {"id": "j", "case_id": "c1", "kind": "digilocker_fetch"})
+    assert db.job[-1]["error"] == "missing_consent:digilocker"
+    db = ProcDb(None, {}); worker.process(db, {"id": "j", "case_id": "c1", "kind": "digilocker_fetch"})
+    assert db.job[-1]["status"] == "succeeded" and len(db.job[-1]["result"]["documents"]) == 3 and db.case[-1] == "ready"
