@@ -1,7 +1,7 @@
 # Akshaya-Access — status (2026-11-22, overnight build)
 
 ## Links
-- CRM: https://akshaya-crm.vercel.app (also akshaya-crm-zeta.vercel.app) — login `crm-tester@akshaya.test`, your own password (`scripts/set-crm-password.sh`)
+- CRM: https://akshaya-crm-zeta.vercel.app (NOT akshaya-crm.vercel.app — that is someone else's app) — login `crm-tester@akshaya.test`, your own password (`scripts/set-crm-password.sh`)
 - Repo: https://github.com/lil-shan/akshaya-access · Supabase: project `akshaya-access` (Mumbai)
 
 ## What works (verified end to end on the live database, dummy data, nothing submitted)
